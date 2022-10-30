@@ -4,7 +4,7 @@
  */
 
 #include "led.h"
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
 void led_init()
 {

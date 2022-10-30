@@ -4,7 +4,7 @@
  */
 
 #include "uart.h"
-#include <stm32f10x.h>
+#include <ch32v30x.h>
 
 void uart_init()
 {

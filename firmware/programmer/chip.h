@@ -6,6 +6,8 @@
 #ifndef _CHIP_H_
 #define _CHIP_H_
 
+#include <stdint.h>
+
 typedef struct
 {
     uint8_t maker_id;

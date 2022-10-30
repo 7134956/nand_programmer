@@ -51,7 +51,7 @@ void ParallelChipInfo::chipInfoToStmParams(StmParams *stmParams)
 {
     double setupTime, waitSetupTime, hiZSetupTime, holdSetupTime, arSetupTime,
         clrSetupTime;
-    const double tHCLK = 13.88; /* 1 / 72MHz */
+    const double tHCLK = 6.95; /* 1 / 144MHz */
     const double tsuD_NOE = 25;
     std::array<quint64, 5> setupArr = { params[CHIP_PARAM_T_CS],
         params[CHIP_PARAM_T_CLS], params[CHIP_PARAM_T_ALS],
@@ -64,9 +64,9 @@ void ParallelChipInfo::chipInfoToStmParams(StmParams *stmParams)
     /* (SET + 1) * tHCLK >= max(tCS, tCLS, tALS, tCLR, tAR) - tWP */
     setupTime = *std::max_element(setupArr.begin(), setupArr.end()) -
         params[CHIP_PARAM_T_WP];
-    setupTime = setupTime / tHCLK - 1;
+    setupTime = setupTime / tHCLK - 2;//setupTime = setupTime / tHCLK - 1;
     /* K9F2G08U0C requires at least 1 tick */
-    setupTime = setupTime <= 0 ? 1 : ceil(setupTime);
+    setupTime = setupTime < 0 ? 0 : ceil(setupTime);//setupTime = setupTime <= 0 ? 1 : ceil(setupTime);
     stmParams->setupTime = static_cast<uint8_t>(setupTime);
 
     /* (WAIT + 1) * tHCLK >= max(tWP, tRP) */
@@ -77,14 +77,14 @@ void ParallelChipInfo::chipInfoToStmParams(StmParams *stmParams)
     /* (WAIT + 1) * tHCLK >= tREA + tsuD_NOE */
     waitSetupTime = params[CHIP_PARAM_T_REA] + tsuD_NOE;
     waitSetupTime = waitSetupTime / tHCLK - 1;
-    waitSetupTime = waitSetupTime <= 0 ? 0 : ceil(waitSetupTime);
+    waitSetupTime = waitSetupTime <= 0 ? 1 : ceil(waitSetupTime);
     if (waitSetupTime > stmParams->waitSetupTime)
         stmParams->waitSetupTime = static_cast<uint8_t>(waitSetupTime);
 
     /* (HIZ + 1) * tHCLK >= max(tCH, tALS, tCLS) + (tWP - tDS) */
     hiZSetupTime = *std::max_element(hiZArr.begin(), hiZArr.end());
     hiZSetupTime += params[CHIP_PARAM_T_WP] - params[CHIP_PARAM_T_DS];
-    hiZSetupTime = hiZSetupTime / tHCLK - 1;
+    hiZSetupTime = hiZSetupTime / tHCLK;//hiZSetupTime = hiZSetupTime / tHCLK - 1;
     hiZSetupTime = hiZSetupTime <= 0 ? 0 : ceil(hiZSetupTime);
     stmParams->hiZSetupTime = static_cast<uint8_t>(hiZSetupTime);
 
@@ -92,7 +92,7 @@ void ParallelChipInfo::chipInfoToStmParams(StmParams *stmParams)
     holdSetupTime =*std::max_element(holdArr.begin(), holdArr.end());
     holdSetupTime = holdSetupTime / tHCLK - 1;
     /* K9F2G08U0C requires at least 2 tick */
-    holdSetupTime = holdSetupTime <= 0 ? 2 : ceil(holdSetupTime);
+    holdSetupTime = holdSetupTime <= 1 ? 2 : ceil(holdSetupTime);//holdSetupTime = holdSetupTime <= 0 ? 2 : ceil(holdSetupTime);
     stmParams->holdSetupTime = static_cast<uint8_t>(holdSetupTime);
 
     /* ((WAIT + 1) + (HOLD + 1) + (SET + 1)) * tHCLK >= max(tWC, tRC) */

@@ -4,7 +4,7 @@
  */
 
 #include "spi_flash.h"
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
 #define SPI_FLASH_CS_PIN GPIO_Pin_4
 #define SPI_FLASH_SCK_PIN GPIO_Pin_5

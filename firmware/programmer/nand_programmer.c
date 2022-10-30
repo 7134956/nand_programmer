@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#define NP_PACKET_BUF_SIZE 64
+#define NP_PACKET_BUF_SIZE 512
 #define NP_MAX_PAGE_SIZE 0x0840 /* 2KB + 64 spare */
 #define NP_WRITE_ACK_BYTES 1984
 #define NP_NAND_TIMEOUT 0x1000000
@@ -28,8 +28,8 @@
 #define BOOT_CONFIG_ADDR 0x08003800
 #define FLASH_START_ADDR 0x08000000
 #define FLASH_SIZE 0x40000
-#define FLASH_PAGE_SIZE 0x800
-#define FLASH_BLOCK_SIZE 0x800
+#define FLASH_PAGE_SIZE 0x100
+#define FLASH_BLOCK_SIZE 0x100
 
 typedef enum
 {
@@ -70,7 +70,7 @@ enum
 
 typedef struct __attribute__((__packed__))
 {
-    np_cmd_code_t code;
+    uint8_t code;
 } np_cmd_t;
 
 typedef struct __attribute__((__packed__))
@@ -99,7 +99,7 @@ typedef struct __attribute__((__packed__))
 typedef struct __attribute__((__packed__))
 {
     np_cmd_t cmd;
-    uint8_t len;
+    uint16_t len;
     uint8_t data[];
 } np_write_data_cmd_t;
 
@@ -137,7 +137,7 @@ enum
 typedef struct __attribute__((__packed__))
 {
     uint8_t code;
-    uint8_t info;
+    uint16_t info;
     uint8_t data[];
 } np_resp_t;
 
@@ -1148,15 +1148,9 @@ static int np_boot_config_read(boot_config_t *config)
 
 static int np_boot_config_write(boot_config_t *config)
 {
-    if (flash_page_erase(BOOT_CONFIG_ADDR) < 0)
-        return -1;
-
-    if (flash_write(BOOT_CONFIG_ADDR, (uint8_t *)config, sizeof(boot_config_t))
-        < 0)
-    {
-        return -1;
-    }
-
+    uint8_t buf[256];
+    buf[0] = *(uint8_t *)config;
+    flash_write_fast(BOOT_CONFIG_ADDR, buf);
     return 0;
 }
 
@@ -1302,14 +1296,7 @@ static int np_cmd_fw_update_data(np_prog_t *prog)
             return NP_ERR_ADDR_EXCEEDED;
         }
 
-        if (flash_page_erase((uint32_t)prog->addr) < 0)
-            return NP_ERR_INTERNAL;
-
-        if (flash_write((uint32_t)prog->addr, prog->page.buf,
-            prog->page_size) < 0)
-        {
-            return NP_ERR_INTERNAL;
-        }
+        flash_write_fast((uint32_t)prog->addr, prog->page.buf);
 
         prog->addr += prog->page_size;
         prog->page.page++;

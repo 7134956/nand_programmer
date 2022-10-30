@@ -30,11 +30,11 @@
     MAKE_STR(SW_VERSION_MINOR) "." MAKE_STR(SW_VERSION_BUILD) "\r\n"
 
 #define APP1_ADDRESS_OFFSET 0x4000
-#define APP1_ADDRESS (FLASH_BASE + APP1_ADDRESS_OFFSET)
+#define APP1_ADDRESS APP1_ADDRESS_OFFSET
 #define APP2_ADDRESS_OFFSET 0x22000
-#define APP2_ADDRESS (FLASH_BASE + APP2_ADDRESS_OFFSET)
+#define APP2_ADDRESS APP2_ADDRESS_OFFSET
 
-#define BOOT_DATA_ADDRESS 0x08003800
+#define BOOT_DATA_ADDRESS 0x00003800
 
 typedef void (*app_func_t)(void);
 typedef struct __attribute__((__packed__))
@@ -45,7 +45,7 @@ typedef struct __attribute__((__packed__))
 int main()
 {
     app_func_t app;
-    uint32_t jump_addr, vt_offset, sp_addr;
+    uint32_t jump_addr;
     volatile config_t *config = (config_t *)BOOT_DATA_ADDRESS;
 
     uart_init();
@@ -55,23 +55,13 @@ int main()
     if (!config->active_image)
     {
         print("0\r\n");
-        vt_offset = APP1_ADDRESS_OFFSET;
-        jump_addr = *(__IO uint32_t *)(APP1_ADDRESS + 4);
-        sp_addr = *(__IO uint32_t *)APP1_ADDRESS;
+        jump_addr = APP1_ADDRESS;
     }
     else
     {
         print("1\r\n");
-        vt_offset = APP2_ADDRESS_OFFSET;
-        jump_addr = *(__IO uint32_t *)(APP2_ADDRESS + 4);
-        sp_addr = *(__IO uint32_t *)APP2_ADDRESS;
+        jump_addr = APP2_ADDRESS;
     }
-
-    /* Relocate vector table */
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, vt_offset);
-    /* Initialize application's Stack Pointer */
-    __set_MSP(sp_addr);
-    /* Start application */
     app = (app_func_t)jump_addr;
     app();
 

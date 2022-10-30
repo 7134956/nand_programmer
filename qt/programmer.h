@@ -42,7 +42,7 @@ class Programmer : public QObject
         { FIRMWARE_IMAGE_1, 0x08004000, 0x00004000, 0x1e000 },
         { FIRMWARE_IMAGE_2, 0x08022000, 0x00022000, 0x1e000 },
     };
-    const uint32_t flashPageSize = 0x800;
+    const uint32_t flashPageSize = 0x100;
 
     SerialPort serialPort;
     QString usbDevName;
@@ -56,6 +56,7 @@ class Programmer : public QObject
     uint8_t activeImage;
     uint8_t updateImage;
     QString firmwareFileName;
+    QFile FirmwareFile;
     QVector<uint8_t> buf;
     ChipId *chipId_p;
 

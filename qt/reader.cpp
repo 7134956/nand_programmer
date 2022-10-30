@@ -141,7 +141,7 @@ int Reader::handleData(char *pbuf, uint32_t len)
 {
     RespHeader *header = reinterpret_cast<RespHeader *>(pbuf);
     char *data = pbuf + sizeof(RespHeader);
-    uint8_t dataSize = header->info;
+    uint16_t dataSize = header->info;
     size_t headerSize = sizeof(RespHeader), packetSize = headerSize + dataSize;
 
     if (!dataSize || packetSize > bufSize)

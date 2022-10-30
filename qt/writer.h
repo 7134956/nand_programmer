@@ -14,7 +14,7 @@ class Writer : public QObject
 {
     Q_OBJECT
 
-    static const uint32_t bufSize = 64;
+    static const uint32_t bufSize = 512;
 
     SerialPort *serialPort = nullptr;
     QVector<uint8_t> *buf;

@@ -3,10 +3,10 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
 void jtag_init()
 {
     /* Enable JTAG in low power mode */
-    DBGMCU_Config(DBGMCU_SLEEP | DBGMCU_STANDBY | DBGMCU_STOP, ENABLE);
+//    DBGMCU_Config(DBGMCU_SLEEP | DBGMCU_STANDBY | DBGMCU_STOP, ENABLE);
 }

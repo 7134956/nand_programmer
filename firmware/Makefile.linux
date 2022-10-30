@@ -50,4 +50,4 @@ erase:
 	st-flash erase
 
 program:
-	st-flash write $(OBJ_DIR)$(GEN_NAME).bin 0x08000000
+	st-flash write $(OBJ_DIR)$(GEN_NAME).bin 0x00000000

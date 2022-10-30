@@ -4,9 +4,9 @@
  */
 
 #include "clock.h"
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
 bool is_external_clock_avail()
 {
-    return (RCC->CR & RCC_CR_HSERDY) != RESET;
+    return (RCC->CTLR & RCC_HSERDY) != RESET;
 }

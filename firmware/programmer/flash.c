@@ -3,55 +3,18 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
-int flash_page_erase(uint32_t page_addr)
+void flash_write_fast(uint32_t addr, uint8_t *data)
 {
-    FLASH_Status status;
-
     __disable_irq();
-    FLASH_Unlock();
-
-    FLASH_ClearFlag(FLASH_FLAG_BSY | FLASH_FLAG_EOP | FLASH_FLAG_PGERR |
-        FLASH_FLAG_WRPRTERR);	
-
-    status = FLASH_ErasePage(page_addr);
-
-    FLASH_Lock();
+    RCC->CFGR0 |= (uint32_t)RCC_HPRE_DIV2;
+    FLASH_Unlock_Fast();
+    FLASH_ErasePage_Fast(addr);
+    FLASH_ProgramPage_Fast(addr, (uint32_t *)data);
+    FLASH_Lock_Fast();
+    RCC->CFGR0 &= ~(uint32_t)RCC_HPRE_DIV2;
     __enable_irq();
-
-    return status != FLASH_COMPLETE ? -1 : 0;
-}
-
-int flash_write(uint32_t addr, uint8_t *data, uint32_t data_len)
-{
-    uint32_t word, count, i;
-    int ret = -1;
-
-    __disable_irq();
-    FLASH_Unlock();
-
-    FLASH_ClearFlag(FLASH_FLAG_BSY | FLASH_FLAG_EOP | FLASH_FLAG_PGERR |
-        FLASH_FLAG_WRPRTERR);	
-
-    count = data_len / 4;
-    if (data_len % 4)
-        count++;
-    for (i = 0 ; i < count ; i++)
-    {
-        word = *((uint32_t *)data + i);
-        if (FLASH_ProgramWord(addr, word) != FLASH_COMPLETE)
-            goto Exit;
-
-        addr += 4;
-    }
-
-    ret = data_len;
-Exit:
-    FLASH_Lock();
-    __enable_irq();
-
-    return ret;
 }
 
 int flash_read(uint32_t addr, uint8_t *data, uint32_t data_len)

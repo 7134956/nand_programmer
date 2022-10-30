@@ -124,7 +124,7 @@ int Writer::handleError(RespHeader *header, uint32_t len)
 int Writer::handleStatus(char *pbuf, uint32_t len)
 {
     RespHeader *header = reinterpret_cast<RespHeader *>(pbuf);
-    uint8_t status = header->info;
+    uint16_t status = header->info;
 
     switch (status)
     {
@@ -267,7 +267,7 @@ int Writer::writeData()
         if (dataLen + bytesWritten > pageLim)
             dataLen = pageLim - bytesWritten;
 
-        writeDataCmd->len = static_cast<uint8_t>(dataLen);
+        writeDataCmd->len = static_cast<uint16_t>(dataLen);
         memcpy(pbuf + headerLen, buf->constData() + bufWriten, dataLen);
         if (write(pbuf, headerLen + dataLen))
             return -1;

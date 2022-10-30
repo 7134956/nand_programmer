@@ -6,6 +6,8 @@
 #ifndef _NAND_PROGRAMMER_H_
 #define _NAND_PROGRAMMER_H_
 
+#include <stdint.h>
+
 typedef struct
 {
     int (*send)(uint8_t *data, uint32_t len);

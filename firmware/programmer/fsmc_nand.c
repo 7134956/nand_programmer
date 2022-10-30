@@ -5,14 +5,14 @@
 
 #include "fsmc_nand.h"
 #include "log.h"
-#include <stm32f10x.h>
+#include "ch32v30x.h"
 
 #define CMD_AREA                   (uint32_t)(1<<16)  /* A16 = CLE  high */
 #define ADDR_AREA                  (uint32_t)(1<<17)  /* A17 = ALE high */
 
-#define DATA_AREA                  ((uint32_t)0x00000000) 
+#define DATA_AREA                  ((uint32_t)0x00000000)
 
-/* NAND memory status */  
+/* NAND memory status */
 #define NAND_ERROR                 ((uint32_t)0x00000001)
 #define NAND_READY                 ((uint32_t)0x00000040)
 
@@ -27,8 +27,8 @@
 #define ADDR_4th_CYCLE(ADDR)       (uint8_t)(((ADDR)& 0xFF000000) >> 24)
 
 #define FSMC_Bank_NAND     FSMC_Bank2_NAND
-#define Bank_NAND_ADDR     Bank2_NAND_ADDR 
-#define Bank2_NAND_ADDR    ((uint32_t)0x70000000)     
+#define Bank_NAND_ADDR     Bank2_NAND_ADDR
+#define Bank2_NAND_ADDR    ((uint32_t)0x70000000)
 #define ROW_ADDRESS (addr.page + (addr.block + (addr.zone * NAND_ZONE_SIZE)) * \
     NAND_BLOCK_SIZE)
 
@@ -65,26 +65,44 @@ static fsmc_conf_t fsmc_conf;
 static void nand_gpio_init(void)
 {
     GPIO_InitTypeDef gpio_init;
-  
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE | 
-        RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG, ENABLE);
-  
-    /* CLE, ALE, D0->D3, NOE, NWE and NCE2 NAND pin configuration */
-    gpio_init.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12 | GPIO_Pin_14 | GPIO_Pin_15 |
-        GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_7;
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE, ENABLE);
+
+    gpio_init.GPIO_Pin =
+		GPIO_Pin_0		//FSMC_D2
+		| GPIO_Pin_1	//FSMC_D3
+		| GPIO_Pin_4	//FSMC_NOE
+		| GPIO_Pin_5	//FSMC_NWE
+		| GPIO_Pin_7	//FSMC_NCE2
+		| GPIO_Pin_8	//FSMC_D13
+		| GPIO_Pin_9	//FSMC_D14
+		| GPIO_Pin_10	//FSMC_D15
+		| GPIO_Pin_11	//FSMC_CLE
+		| GPIO_Pin_12	//FSMC_ALE
+		| GPIO_Pin_14	//FSMC_D0
+		| GPIO_Pin_15;	//FSMC_D1
     gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
     gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_Init(GPIOD, &gpio_init);
 
-    /* D4->D7 NAND pin configuration */  
-    gpio_init.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10;
+
+    gpio_init.GPIO_Pin =
+		GPIO_Pin_7		//FSMC_D4
+		| GPIO_Pin_8	//FSMC_D5
+		| GPIO_Pin_9	//FSMC_D6
+		| GPIO_Pin_10	//FSMC_D7
+		| GPIO_Pin_11	//FSMC_D8
+		| GPIO_Pin_12	//FSMC_D9
+		| GPIO_Pin_13	//FSMC_D10
+		| GPIO_Pin_14	//FSMC_D11
+		| GPIO_Pin_15;	//FSMC_D12
     GPIO_Init(GPIOE, &gpio_init);
 
     /* NWAIT NAND pin configuration */
     gpio_init.GPIO_Pin = GPIO_Pin_6;
     gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
     gpio_init.GPIO_Mode = GPIO_Mode_IPU;
-    GPIO_Init(GPIOD, &gpio_init); 
+    GPIO_Init(GPIOD, &gpio_init);
 
     /* INT2 NAND pin configuration, not available in LQFP100 */
 #if 0
@@ -132,7 +150,7 @@ static void nand_print_fsmc_info()
     DEBUG_PRINT("Col. cycles: %d\r\n", fsmc_conf.col_cycles);
     DEBUG_PRINT("Read command 1: %d\r\n", fsmc_conf.read1_cmd);
     DEBUG_PRINT("Read command 2: %d\r\n", fsmc_conf.read2_cmd);
-    DEBUG_PRINT("Read spare command: %d\r\n", fsmc_conf.read_spare_cmd);    
+    DEBUG_PRINT("Read spare command: %d\r\n", fsmc_conf.read_spare_cmd);
     DEBUG_PRINT("Read ID command: %d\r\n", fsmc_conf.read_id_cmd);
     DEBUG_PRINT("Reset command: %d\r\n", fsmc_conf.reset_cmd);
     DEBUG_PRINT("Write 1 command: %d\r\n", fsmc_conf.write1_cmd);
@@ -140,7 +158,7 @@ static void nand_print_fsmc_info()
     DEBUG_PRINT("Erase 1 command: %d\r\n", fsmc_conf.erase1_cmd);
     DEBUG_PRINT("Erase 2 command: %d\r\n", fsmc_conf.erase2_cmd);
     DEBUG_PRINT("Status command: %d\r\n", fsmc_conf.status_cmd);
-    DEBUG_PRINT("Set feature command: %d\r\n", fsmc_conf.set_feature_cmd);
+    DEBUG_PRINT("Set feature command: %d\r\n", fsmc_conf.set_features_cmd);
     DEBUG_PRINT("Enable ECC address: %d\r\n", fsmc_conf.enable_ecc_addr);
     DEBUG_PRINT("Enable ECC value: %d\r\n", fsmc_conf.enable_ecc_value);
     DEBUG_PRINT("Disable ECC value: %d\r\n", fsmc_conf.disable_ecc_value);
@@ -155,7 +173,7 @@ static int nand_init(void *conf, uint32_t conf_size)
 {
     if (conf_size < sizeof(fsmc_conf_t))
         return -1;
-   
+
     fsmc_conf = *(fsmc_conf_t *)conf;
 
     nand_gpio_init();
@@ -355,6 +373,13 @@ static uint32_t nand_read_data(uint8_t *buf, uint32_t page,
     if (fsmc_conf.read2_cmd != UNDEFINED_CMD)
         *(__IO uint8_t *)(Bank_NAND_ADDR | CMD_AREA) = fsmc_conf.read2_cmd;
 
+    //Workaround. Lost bytes
+    __IO uint32_t delay = 1000;
+    while(delay)
+    {
+        delay--;
+    }
+
     for (i = 0; i < data_size; i++)
         buf[i] = *(__IO uint8_t *)(Bank_NAND_ADDR | DATA_AREA);
 
@@ -431,6 +456,13 @@ static uint32_t nand_read_spare_data(uint8_t *buf, uint32_t page,
         break;
     default:
         break;
+    }
+
+    //Workaround. Lost bytes
+    __IO uint32_t delay = 1000;
+    while(delay)
+    {
+        delay--;
     }
 
     for (i = 0; i < data_size; i++)

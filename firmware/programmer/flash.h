@@ -6,8 +6,7 @@
 #ifndef _FLASH_H_
 #define _FLASH_H_
 
-int flash_page_erase(uint32_t page_addr);
-int flash_write(uint32_t addr, uint8_t *data, uint32_t data_len);
+void flash_write_fast(uint32_t addr, uint8_t *data);
 int flash_read(uint32_t addr, uint8_t *data, uint32_t data_len);
 
 #endif

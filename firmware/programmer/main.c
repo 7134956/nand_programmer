@@ -4,7 +4,6 @@
  */
 
 #include "nand_programmer.h"
-#include "usb.h"
 #include "cdc.h"
 #include "led.h"
 #include "uart.h"
@@ -29,10 +28,6 @@ int main()
 
     printf("LED init...");
     led_init();
-    printf("done.\r\n");
-
-    printf("USB init...");
-    usb_init();
     printf("done.\r\n");
 
     printf("CDC init...");
