@@ -369,12 +369,20 @@ void MainWindow::slotProgWriteProgress(quint64 progress)
     progressPercent = progress * 100ULL / progSize;
     setProgress(progressPercent);
 
-    uint32_t dataSize = workFile.read((char *)buffer.data(), pageSize);
+    qint64 readSize = workFile.read((char *)buffer.data(), pageSize);
 
-    if (dataSize < pageSize)
+    if (readSize < 0)
     {
-        uint32_t tail = pageSize - dataSize;
-        memset(buffer.end() - tail, 0xFF, tail);
+        qCritical() << "Failed to read file";
+        return;
+    }
+    else if (readSize == 0)
+    {
+        return;
+    }
+    else if (readSize < pageSize)
+    {
+        std::fill(buffer.data() + readSize, buffer.data() + pageSize, 0xFF);
     }
 }
 
@@ -444,8 +452,7 @@ void MainWindow::slotProgWrite()
     }
     else if (readSize < pageSize)
     {
-        uint32_t tail = pageSize - readSize;
-        memset(buffer.end() - tail, 0xFF, tail);
+        std::fill(buffer.data() + readSize, buffer.data() + pageSize, 0xFF);
     }
     prog->writeChip(&buffer, START_ADDRESS, progSize, pageSize);
 }

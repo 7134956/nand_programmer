@@ -82,7 +82,7 @@ FORMS += main_window.ui \
     firmware_update_dialog.ui \
     spi_chip_db_dialog.ui
 
-QMAKE_CXXFLAGS += -std=c++11 -Wextra -Werror
+QMAKE_CXXFLAGS += -std=c++17 -Wextra -Werror
 mingw:QMAKE_CXXFLAGS += -mno-ms-bitfields
 
 DISTFILES += \
