@@ -1,21 +1,20 @@
 # NANDO (NANDopen) programmer
 
 ## General
-NANDO is open source NAND programmer based on STM32 processor. It supports parallel NAND and SPI flash programming.
+NANDO is open source NAND programmer based on CH32V307VCT6 processor. It supports parallel NAND and SPI flash programming.
 
 PCB boards:
 
-<img src="img/board.jpeg" width="800">
+<img src="img/board.jpg">
 
 Application:
 
-<img src="img/host_app.jpeg">
+<img src="img/host_app.jpg">
 
 ## Features
-- USB interface
+- USB_HS interface
 - PC client software for Linux & Windows.
-- TSOP-48 socket adapter for NAND chip (compatible with TL866 adapter)
-- TSOP-48 solder adapter for NAND chip
+- TSOP-48 socket for NAND chip
 - 8 bit parallel NAND interface
 - SPI interface
 - 3.3V NAND power supply
@@ -49,12 +48,6 @@ STM32, schematic and gerber files from <a href="https://drive.google.com/drive/f
 
 ### License
 In general the sorce code, PCB and schematic are under GPLv3 license but with limitations of:
-
-firmware/libs/spl/CMSIS/License.doc
-
-firmware/libs/spl/STM32_USB-FS-Device_Driver/ - http://www.st.com/software_license_agreement_liberty_v2
-
-firmware/usb_cdc - http://www.st.com/software_license_agreement_liberty_v2
 
 ## WiKi
 Check [WiKi](https://github.com/bbogush/nand_programmer/wiki) page for more information.
