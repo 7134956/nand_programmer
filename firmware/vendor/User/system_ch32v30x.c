@@ -737,7 +737,7 @@ static void SetSysClockTo144(void)
     /* PCLK2 = HCLK */
     RCC->CFGR0 |= (uint32_t)RCC_PPRE2_DIV1;
     /* PCLK1 = HCLK */
-    RCC->CFGR0 |= (uint32_t)RCC_PPRE1_DIV2;
+    RCC->CFGR0 |= (uint32_t)RCC_PPRE1_DIV1;
 
     /*  PLL configuration: PLLCLK = HSE * 18 = 144 MHz */
     RCC->CFGR0 &= (uint32_t)((uint32_t)~(RCC_PLLSRC | RCC_PLLXTPRE |

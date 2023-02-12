@@ -6,10 +6,10 @@
 #include "spi_flash.h"
 #include "ch32v30x.h"
 
-#define SPI_FLASH_CS_PIN GPIO_Pin_4
-#define SPI_FLASH_SCK_PIN GPIO_Pin_5
-#define SPI_FLASH_MISO_PIN GPIO_Pin_6
-#define SPI_FLASH_MOSI_PIN GPIO_Pin_7
+#define SPI_FLASH_CS_PIN GPIO_Pin_15
+#define SPI_FLASH_SCK_PIN GPIO_Pin_10
+#define SPI_FLASH_MISO_PIN GPIO_Pin_11
+#define SPI_FLASH_MOSI_PIN GPIO_Pin_12
 
 #define FLASH_DUMMY_BYTE 0xA5
 
@@ -48,26 +48,31 @@ static void spi_flash_gpio_init()
 {
     GPIO_InitTypeDef gpio_init;
 
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
     /* Enable SPI peripheral clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-  
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
+
+    /* Remap SPI3 */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+    GPIO_PinRemapConfig(GPIO_Remap_SPI3, ENABLE);
+
     /* Configure SPI SCK pin */
     gpio_init.GPIO_Pin = SPI_FLASH_SCK_PIN;
     gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
     gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOA, &gpio_init);
+    GPIO_Init(GPIOC, &gpio_init);
 
     /* Configure SPI MOSI pin */
     gpio_init.GPIO_Pin = SPI_FLASH_MOSI_PIN;
-    GPIO_Init(GPIOA, &gpio_init);
+    GPIO_Init(GPIOC, &gpio_init);
 
     /* Configure SPI MISO pin */
     gpio_init.GPIO_Pin = SPI_FLASH_MISO_PIN;
     gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOA, &gpio_init);
-  
+    GPIO_Init(GPIOC, &gpio_init);
+
     /* Configure SPI CS pin */
     gpio_init.GPIO_Pin = SPI_FLASH_CS_PIN;
     gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -78,21 +83,23 @@ static void spi_flash_gpio_uninit()
 {
     GPIO_InitTypeDef gpio_init;
 
+    GPIO_PinRemapConfig(GPIO_Remap_SPI3, DISABLE);
+
     /* Disable SPI peripheral clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, DISABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, DISABLE);
 
     /* Disable SPI SCK pin */
     gpio_init.GPIO_Pin = SPI_FLASH_SCK_PIN;
     gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOA, &gpio_init);
+    GPIO_Init(GPIOC, &gpio_init);
 
     /* Disable SPI MISO pin */
     gpio_init.GPIO_Pin = SPI_FLASH_MISO_PIN;
-    GPIO_Init(GPIOA, &gpio_init);
+    GPIO_Init(GPIOC, &gpio_init);
 
     /* Disable SPI MOSI pin */
     gpio_init.GPIO_Pin = SPI_FLASH_MOSI_PIN;
-    GPIO_Init(GPIOA, &gpio_init);
+    GPIO_Init(GPIOC, &gpio_init);
 
     /* Disable SPI CS pin */
     gpio_init.GPIO_Pin = SPI_FLASH_CS_PIN;
@@ -112,6 +119,10 @@ static inline void spi_flash_deselect_chip()
 static uint16_t spi_flash_get_baud_rate_prescaler(uint32_t spi_freq_khz)
 {
     uint32_t system_clock_khz = SystemCoreClock / 1000;
+
+    // Max SPI frequency for CH32V307
+    if(spi_freq_khz > 36000)
+        spi_freq_khz = 36000;
 
     if (spi_freq_khz >= system_clock_khz / 2)
         return SPI_BaudRatePrescaler_2;
@@ -147,17 +158,20 @@ static int spi_flash_init(void *conf, uint32_t conf_size)
     spi_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     spi_init.SPI_Mode = SPI_Mode_Master;
     spi_init.SPI_DataSize = SPI_DataSize_8b;
-    spi_init.SPI_CPOL = SPI_CPOL_High;
+    spi_init.SPI_CPOL = SPI_CPOL_Low; //Instead of SPI_CPOL_High! CH32V307 bug?
     spi_init.SPI_CPHA = SPI_CPHA_2Edge;
     spi_init.SPI_NSS = SPI_NSS_Soft;
     spi_init.SPI_BaudRatePrescaler =
         spi_flash_get_baud_rate_prescaler(spi_conf.freq);
     spi_init.SPI_FirstBit = SPI_FirstBit_MSB;
     spi_init.SPI_CRCPolynomial = 7;
-    SPI_Init(SPI1, &spi_init);
+    SPI_Init(SPI3, &spi_init);
 
     /* Enable SPI */
-    SPI_Cmd(SPI1, ENABLE);
+    SPI_Cmd(SPI3, ENABLE);
+
+    /* Clear data register */
+    SPI_I2S_ReceiveData(SPI3);
 
     return 0;
 }
@@ -167,22 +181,22 @@ static void spi_flash_uninit()
     spi_flash_gpio_uninit();
 
     /* Disable SPI */
-    SPI_Cmd(SPI1, DISABLE);
+    SPI_Cmd(SPI3, DISABLE);
 }
 
 static uint8_t spi_flash_send_byte(uint8_t byte)
 {
     /* Loop while DR register in not emplty */
-    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
+    while (SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_TXE) == RESET);
 
-    /* Send byte through the SPI1 peripheral to generate clock signal */
-    SPI_I2S_SendData(SPI1, byte);
+    /* Send byte through the SPI3 peripheral to generate clock signal */
+    SPI_I2S_SendData(SPI3, byte);
 
     /* Wait to receive a byte */
-    while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
+    while (SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_RXNE) == RESET);
 
     /* Return the byte read from the SPI bus */
-    return SPI_I2S_ReceiveData(SPI1);
+    return SPI_I2S_ReceiveData(SPI3);
 }
 
 static inline uint8_t spi_flash_read_byte()
