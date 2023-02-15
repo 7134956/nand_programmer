@@ -186,7 +186,7 @@ typedef struct {
 #define _eth_delay_    ETH_Delay       /* Default _eth_delay_ function with less precise timing */
 
 /* definition for Ethernet frame */
-#define ETH_MAX_PACKET_SIZE    1520    /* ETH_HEADER + ETH_EXTRA + MAX_ETH_PAYLOAD + ETH_CRC */
+#define ETH_MAX_PACKET_SIZE    1536    /* ETH_HEADER + ETH_EXTRA + MAX_ETH_PAYLOAD + ETH_CRC */
 #define ETH_HEADER               14    /* 6 byte Dest addr, 6 byte Src addr, 2 byte length/type */
 #define ETH_CRC                   4    /* Ethernet CRC */
 #define ETH_EXTRA                 2    /* Extra bytes in some cases */
@@ -198,7 +198,7 @@ typedef struct {
 /* ETH DMA structure definition */
 typedef struct
 {
-  uint32_t   Status;                /* Status */
+  uint32_t   volatile Status;       /* Status */
   uint32_t   ControlBufferSize;     /* Control and Buffer1, Buffer2 lengths */
   uint32_t   Buffer1Addr;           /* Buffer1 address pointer */
   uint32_t   Buffer2NextDescAddr;   /* Buffer2 or next descriptor address pointer */
@@ -318,7 +318,10 @@ typedef struct
 
 /* PHY basic register */
 #define PHY_BCR                          0x0           /*PHY transceiver Basic Control Register */
-#define PHY_BSR                          0x01          /*PHY transceiver Basic Status Register */
+#define PHY_BSR                          0x01          /*PHY transceiver Basic Status Register*/
+#define PHY_ANAR                         0x04          /* Auto-Negotiation Advertisement Register */
+#define PHY_ANLPAR                       0x05          /* Auto-Negotiation Link Partner Base  Page Ability Register*/
+#define PHY_ANER                         0x06          /* Auto-Negotiation Expansion Register */
 #define PHY_BMCR                         PHY_BCR
 #define PHY_BMSR                         PHY_BSR
 #define PHY_STATUS                       0x10

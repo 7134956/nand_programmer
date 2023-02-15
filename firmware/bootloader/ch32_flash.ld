@@ -47,8 +47,6 @@ SECTIONS
 		*(.text.*)
 		*(.rodata)
 		*(.rodata*)
-		*(.glue_7)
-		*(.glue_7t)
 		*(.gnu.linkonce.t.*)
 		. = ALIGN(4);
 	} >FLASH AT>FLASH 

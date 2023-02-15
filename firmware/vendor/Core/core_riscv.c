@@ -175,35 +175,6 @@ void __set_MISA(uint32_t value)
 }
 
 /*********************************************************************
- * @fn      __get_MIE
- *
- * @brief   Return the Machine Interrupt Enable Register
- *
- * @return  mie value
- */
-uint32_t __get_MIE(void)
-{
-  uint32_t result;
-
-  __ASM volatile ( "csrr %0," "mie" : "=r" (result) );
-  return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MISA
- *
- * @brief   Set the Machine ISA Register
- *
- * @param   value  - set mie value
- *
- * @return  none
- */
-void __set_MIE(uint32_t value)
-{
-  __ASM volatile ("csrw mie, %0" : : "r" (value) );
-}
-
-/*********************************************************************
  * @fn      __get_MTVEC
  *
  * @brief   Return the Machine Trap-Vector Base-Address Register

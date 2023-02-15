@@ -368,11 +368,11 @@ handle_reset:
     csrw 0xbc0, t0
 
     /* Enable nested and hardware stack */
-	li t0, 0x1b
+	li t0, 0x0b
 	csrw 0x804, t0
 
     /* Enable floating point and interrupt */
-   	li t0, 0x6088
+   	li t0, 0x6088           
    	csrs mstatus, t0
 
  	la t0, _vector_base
@@ -380,7 +380,7 @@ handle_reset:
 	csrw mtvec, t0
 
     jal  SystemInit
-	jal  main
+    jal  main
 	la t0, main
 	csrw mepc, t0
 	mret
