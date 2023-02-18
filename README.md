@@ -23,6 +23,7 @@ Application:
 - NAND read of bad blocks
 - NAND bad block skip option
 - NAND include spare area option
+- Configurable erase, write, read areas.
 - Open KiCad PCB & Schematic
 - Open source code
 - Read & Write LEDs indication
