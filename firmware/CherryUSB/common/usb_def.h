@@ -1,24 +1,7 @@
-/**
- * @file usb_def.h
- * @brief
+/*
+ * Copyright (c) 2022, sakumisu
  *
- * Copyright (c) 2022 sakumisu
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.  The
- * ASF licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 #ifndef USB_DEF_H
 #define USB_DEF_H
@@ -30,11 +13,13 @@
 #define USB_2_1 0x0210
 
 /* Device speeds */
-#define USB_SPEED_UNKNOWN  0 /* Transfer rate not yet set */
-#define USB_SPEED_LOW      1 /* USB 1.1 */
-#define USB_SPEED_FULL     2 /* USB 1.1 */
-#define USB_SPEED_HIGH     3 /* USB 2.0 */
-#define USB_SPEED_VARIABLE 4 /* Wireless USB 2.5 */
+#define USB_SPEED_UNKNOWN    0 /* Transfer rate not yet set */
+#define USB_SPEED_LOW        1 /* USB 1.1 */
+#define USB_SPEED_FULL       2 /* USB 1.1 */
+#define USB_SPEED_HIGH       3 /* USB 2.0 */
+#define USB_SPEED_WIRELESS   4 /* Wireless USB 2.5 */
+#define USB_SPEED_SUPER      5 /* USB 3.0 */
+#define USB_SPEED_SUPER_PLUS 6 /* USB 3.1 */
 
 /* Maximum number of devices per controller */
 #define USB_MAX_DEVICES (127)
@@ -46,7 +31,7 @@
 /**< maximum packet size (MPS) for EP 0 */
 #define USB_CTRL_EP_MPS 64
 
-// USB PID Types
+/* USB PID Types */
 #define USB_PID_OUT   (0x01) /* Tokens */
 #define USB_PID_IN    (0x09)
 #define USB_PID_SOF   (0x05)
@@ -622,6 +607,12 @@ struct usb_webusb_url_descriptor {
     char URL[];
 } __PACKED;
 
+struct usb_webusb_url_ex_descriptor {
+    uint8_t vendor_code;
+    uint8_t *string;
+    uint32_t string_len;
+} __PACKED;
+
 struct usb_bos_descriptor {
     uint8_t *string;
     uint32_t string_len;
@@ -702,4 +693,4 @@ struct usb_desc_header {
     WBVAL(id)                   /* wLangID0 */
 // clang-format on
 
-#endif
+#endif /* USB_DEF_H */

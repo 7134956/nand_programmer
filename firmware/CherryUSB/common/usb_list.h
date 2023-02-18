@@ -1,27 +1,10 @@
-/**
- * @file usb_list.h
- * @brief
+/*
+ * Copyright (c) 2022, sakumisu
  *
- * Copyright (c) 2022 sakumisu
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.  The
- * ASF licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef __USB_LIST_H__
-#define __USB_LIST_H__
+#ifndef USB_LIST_H
+#define USB_LIST_H
 
 #include <string.h>
 #include <stdint.h>
@@ -63,12 +46,14 @@ static inline void usb_slist_add_head(usb_slist_t *l, usb_slist_t *n)
 
 static inline void usb_slist_add_tail(usb_slist_t *l, usb_slist_t *n)
 {
-    while (l->next) {
-        l = l->next;
+    usb_slist_t *tmp = l;
+
+    while (tmp->next) {
+        tmp = tmp->next;
     }
 
     /* append the node to the tail */
-    l->next = n;
+    tmp->next = n;
     n->next = NULL;
 }
 
@@ -91,14 +76,15 @@ static inline void usb_slist_insert(usb_slist_t *l, usb_slist_t *next, usb_slist
 
 static inline usb_slist_t *usb_slist_remove(usb_slist_t *l, usb_slist_t *n)
 {
+    usb_slist_t *tmp = l;
     /* remove slist head */
-    while (l->next && l->next != n) {
-        l = l->next;
+    while (tmp->next && tmp->next != n) {
+        tmp = tmp->next;
     }
 
     /* remove node */
-    if (l->next != (usb_slist_t *)0) {
-        l->next = l->next->next;
+    if (tmp->next != (usb_slist_t *)0) {
+        tmp->next = tmp->next->next;
     }
 
     return l;
@@ -350,8 +336,8 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
  * @brief initialize a dlist object
  */
 #define USB_DLIST_OBJECT_INIT(object) \
-    {                             \
-        &(object), &(object)      \
+    {                                 \
+        &(object), &(object)          \
     }
 /**
  * @brief initialize a dlist object
@@ -411,11 +397,11 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
  * @n:      another dlist_t * to use as temporary storage
  * @head:   the head for your list.
  */
-#define usb_dlist_for_each_safe(pos, n, head)                  \
+#define usb_dlist_for_each_safe(pos, n, head)              \
     for (pos = (head)->next, n = pos->next; pos != (head); \
          pos = n, n = pos->next)
 
-#define usb_dlist_for_each_prev_safe(pos, n, head)             \
+#define usb_dlist_for_each_prev_safe(pos, n, head)         \
     for (pos = (head)->prev, n = pos->prev; pos != (head); \
          pos = n, n = pos->prev)
 /**
@@ -426,7 +412,7 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
  */
 #define usb_dlist_for_each_entry(pos, head, member)                 \
     for (pos = usb_dlist_entry((head)->next, typeof(*pos), member); \
-         &pos->member != (head);                                \
+         &pos->member != (head);                                    \
          pos = usb_dlist_entry(pos->member.next, typeof(*pos), member))
 
 /**
@@ -437,7 +423,7 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
  */
 #define usb_dlist_for_each_entry_reverse(pos, head, member)         \
     for (pos = usb_dlist_entry((head)->prev, typeof(*pos), member); \
-         &pos->member != (head);                                \
+         &pos->member != (head);                                    \
          pos = usb_dlist_entry(pos->member.prev, typeof(*pos), member))
 
 /**
@@ -450,7 +436,7 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
 #define usb_dlist_for_each_entry_safe(pos, n, head, member)          \
     for (pos = usb_dlist_entry((head)->next, typeof(*pos), member),  \
         n = usb_dlist_entry(pos->member.next, typeof(*pos), member); \
-         &pos->member != (head);                                 \
+         &pos->member != (head);                                     \
          pos = n, n = usb_dlist_entry(n->member.next, typeof(*n), member))
 
 /**
@@ -463,11 +449,11 @@ static inline unsigned int usb_dlist_len(const usb_dlist_t *l)
 #define usb_dlist_for_each_entry_safe_reverse(pos, n, head, member)  \
     for (pos = usb_dlist_entry((head)->prev, typeof(*pos), field),   \
         n = usb_dlist_entry(pos->member.prev, typeof(*pos), member); \
-         &pos->member != (head);                                 \
+         &pos->member != (head);                                     \
          pos = n, n = usb_dlist_entry(pos->member.prev, typeof(*pos), member))
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* USB_LIST_H */

@@ -1,26 +1,10 @@
-/**
- * @file usbd_core.h
+/*
+ * Copyright (c) 2022, sakumisu
  *
- * Copyright (c) 2022 sakumisu
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.  The
- * ASF licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef _USBD_CORE_H
-#define _USBD_CORE_H
+#ifndef USBD_CORE_H
+#define USBD_CORE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,109 +25,76 @@ extern "C" {
 #include "usb_dc.h"
 
 enum usbd_event_type {
-    /** USB error reported by the controller */
-    USBD_EVENT_ERROR,
-    /** USB reset */
-    USBD_EVENT_RESET,
-    /** Start of Frame received */
-    USBD_EVENT_SOF,
-    /** USB connection established, hardware enumeration is completed */
-    USBD_EVENT_CONNECTED,
-    /** USB configuration done */
-    USBD_EVENT_CONFIGURED,
-    /** USB connection suspended by the HOST */
-    USBD_EVENT_SUSPEND,
-    /** USB connection lost */
-    USBD_EVENT_DISCONNECTED,
-    /** USB connection resumed by the HOST */
-    USBD_EVENT_RESUME,
+    /* USB DCD IRQ */
+    USBD_EVENT_ERROR,        /** USB error reported by the controller */
+    USBD_EVENT_RESET,        /** USB reset */
+    USBD_EVENT_SOF,          /** Start of Frame received */
+    USBD_EVENT_CONNECTED,    /** USB connected*/
+    USBD_EVENT_DISCONNECTED, /** USB disconnected */
+    USBD_EVENT_SUSPEND,      /** USB connection suspended by the HOST */
+    USBD_EVENT_RESUME,       /** USB connection resumed by the HOST */
 
-    /** USB interface selected */
-    USBD_EVENT_SET_INTERFACE,
-    /** USB interface selected */
-    USBD_EVENT_SET_REMOTE_WAKEUP,
-    /** USB interface selected */
-    USBD_EVENT_CLEAR_REMOTE_WAKEUP,
-    /** Set Feature ENDPOINT_HALT received */
-    USBD_EVENT_SET_HALT,
-    /** Clear Feature ENDPOINT_HALT received */
-    USBD_EVENT_CLEAR_HALT,
-    /** setup packet received */
-    USBD_EVENT_SETUP_NOTIFY,
-    /** ep0 in packet received */
-    USBD_EVENT_EP0_IN_NOTIFY,
-    /** ep0 out packet received */
-    USBD_EVENT_EP0_OUT_NOTIFY,
-    /** ep in packet except ep0 received */
-    USBD_EVENT_EP_IN_NOTIFY,
-    /** ep out packet except ep0 received */
-    USBD_EVENT_EP_OUT_NOTIFY,
-    /** Initial USB connection status */
+    /* USB DEVICE STATUS */
+    USBD_EVENT_CONFIGURED,    /** USB configuration done */
+    USBD_EVENT_SET_INTERFACE, /** USB interface selected */
     USBD_EVENT_UNKNOWN
 };
 
-/**
- * @brief Callback function signature for the USB Endpoint status
- */
-typedef void (*usbd_endpoint_callback)(uint8_t ep);
-
-/**
- * @brief Callback function signature for class specific requests
- *
- * Function which handles Class specific requests corresponding to an
- * interface number specified in the device descriptor table. For host
- * to device direction the 'len' and 'payload_data' contain the length
- * of the received data and the pointer to the received data respectively.
- * For device to host class requests, 'len' and 'payload_data' should be
- * set by the callback function with the length and the address of the
- * data to be transmitted buffer respectively.
- */
-typedef int (*usbd_request_handler)(struct usb_setup_packet *setup,
-                                    uint8_t **data, uint32_t *transfer_len);
-
-/* callback function pointer structure for Application to handle events */
+typedef int (*usbd_request_handler)(struct usb_setup_packet *setup, uint8_t **data, uint32_t *len);
+typedef void (*usbd_endpoint_callback)(uint8_t ep, uint32_t nbytes);
 typedef void (*usbd_notify_handler)(uint8_t event, void *arg);
 
-typedef struct usbd_endpoint {
-    usb_slist_t list;
+extern usb_slist_t usbd_intf_head;
+
+struct usbd_endpoint {
     uint8_t ep_addr;
     usbd_endpoint_callback ep_cb;
-} usbd_endpoint_t;
+};
 
-typedef struct usbd_interface {
+struct usbd_interface {
     usb_slist_t list;
-    /** Handler for USB Class specific commands*/
-    usbd_request_handler class_handler;
-    /** Handler for USB Vendor specific commands */
+    usbd_request_handler class_interface_handler;
+    usbd_request_handler class_endpoint_handler;
     usbd_request_handler vendor_handler;
-    /** Handler for USB custom specific commands */
-    usbd_request_handler custom_handler;
-    /** Handler for USB event notify commands */
     usbd_notify_handler notify_handler;
+    const uint8_t *hid_report_descriptor;
+    uint32_t hid_report_descriptor_len;
     uint8_t intf_num;
-    usb_slist_t ep_list;
-} usbd_interface_t;
+};
 
-typedef struct usbd_class {
-    usb_slist_t list;
-    const char *name;
-    usb_slist_t intf_list;
-} usbd_class_t;
+struct usb_descriptor {
+    const uint8_t *device_descriptor;
+    const uint8_t *fs_config_descriptor;
+    const uint8_t *hs_config_descriptor;
+    const uint8_t *device_quality_descriptor;
+    const uint8_t *fs_other_speed_descriptor;
+    const uint8_t *hs_other_speed_descriptor;
+    const char **string_descriptor;
+    struct usb_msosv1_descriptor *msosv1_descriptor;
+    struct usb_msosv2_descriptor *msosv2_descriptor;
+    struct usb_webusb_url_ex_descriptor *webusb_url_descriptor;
+    struct usb_bos_descriptor *bos_descriptor;
+};
 
-void usbd_event_notify_handler(uint8_t event, void *arg);
-
+#ifdef CONFIG_USBDEV_ADVANCE_DESC
+void usbd_desc_register(struct usb_descriptor *desc);
+#else
 void usbd_desc_register(const uint8_t *desc);
 void usbd_msosv1_desc_register(struct usb_msosv1_descriptor *desc);
 void usbd_msosv2_desc_register(struct usb_msosv2_descriptor *desc);
 void usbd_bos_desc_register(struct usb_bos_descriptor *desc);
-void usbd_class_register(usbd_class_t *devclass);
-void usbd_class_add_interface(usbd_class_t *devclass, usbd_interface_t *intf);
-void usbd_interface_add_endpoint(usbd_interface_t *intf, usbd_endpoint_t *ep);
+#endif
+
+void usbd_add_interface(struct usbd_interface *intf);
+void usbd_add_endpoint(struct usbd_endpoint *ep);
+
 bool usb_device_is_configured(void);
+void usbd_configure_done_callback(void);
 int usbd_initialize(void);
+int usbd_deinitialize(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* USBD_CORE_H */

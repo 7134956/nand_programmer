@@ -102,57 +102,61 @@ static const uint8_t cdc_descriptor[] = {
     0x00
 };
 
-/*!< class */
-usbd_class_t cdc_class;
-/*!< interface one */
-usbd_interface_t cdc_cmd_intf;
-/*!< interface two */
-usbd_interface_t cdc_data_intf;
-
 #ifdef CONFIG_USB_HS
-#define CDC_BULK_SIZE 512
+#define CDC_MAX_MPS 512
 #else
-#define CDC_BULK_SIZE 64
+#define CDC_MAX_MPS 64
 #endif
 
-volatile uint8_t dtr_enable = 0;
-
-uint8_t buf_data[CDC_BULK_SIZE];
+uint8_t rx_data[CDC_MAX_MPS];
+uint8_t tx_data[CDC_MAX_MPS];
 uint32_t len_data = 0;
+bool tx_busy = false;
 
-void usbd_cdc_acm_out(uint8_t ep)
+void usbd_configure_done_callback(void)
 {
-      usbd_ep_read(ep, buf_data, CDC_BULK_SIZE, &len_data);
+    usbd_ep_start_read(CDC_OUT_EP, rx_data, CDC_MAX_MPS);
 }
 
-void usbd_cdc_acm_in(uint8_t ep)
+void usbd_cdc_acm_bulk_out(uint8_t ep, uint32_t nbytes)
 {
+    len_data = nbytes;
+}
+
+void usbd_cdc_acm_bulk_in(uint8_t ep, uint32_t nbytes)
+{
+//    if(tx_busy) {
+        tx_busy = false;
+        /* send zlp */
+//        usbd_ep_start_write(CDC_IN_EP, NULL, 0);
+//    }
 }
 
 /*!< endpoint call back */
-usbd_endpoint_t cdc_out_ep = {
+struct usbd_endpoint cdc_out_ep = {
     .ep_addr = CDC_OUT_EP,
-    .ep_cb = usbd_cdc_acm_out
+    .ep_cb = usbd_cdc_acm_bulk_out
 };
 
-usbd_endpoint_t cdc_in_ep = {
+struct usbd_endpoint cdc_in_ep = {
     .ep_addr = CDC_IN_EP,
-    .ep_cb = usbd_cdc_acm_in
+    .ep_cb = usbd_cdc_acm_bulk_in
 };
 
-/* function ------------------------------------------------------------------*/
+struct usbd_interface intf0;
+struct usbd_interface intf1;
+
 void cdc_acm_init(void)
 {
     usbd_desc_register(cdc_descriptor);
-    /*!< add interface */
-    usbd_cdc_add_acm_interface(&cdc_class, &cdc_cmd_intf);
-    usbd_cdc_add_acm_interface(&cdc_class, &cdc_data_intf);
-    /*!< interface add endpoint */
-    usbd_interface_add_endpoint(&cdc_data_intf, &cdc_out_ep);
-    usbd_interface_add_endpoint(&cdc_data_intf, &cdc_in_ep);
-
+    usbd_add_interface(usbd_cdc_acm_init_intf(&intf0));
+    usbd_add_interface(usbd_cdc_acm_init_intf(&intf1));
+    usbd_add_endpoint(&cdc_out_ep);
+    usbd_add_endpoint(&cdc_in_ep);
     usbd_initialize();
 }
+
+volatile uint8_t dtr_enable = 0;
 
 void usbd_cdc_acm_set_dtr(uint8_t intf, bool dtr)
 {
@@ -165,25 +169,27 @@ void usbd_cdc_acm_set_dtr(uint8_t intf, bool dtr)
 
 static int cdc_send_ready()
 {
-    return 1;//dtr_enable;
+    return !tx_busy;
 }
 
 static int cdc_send(uint8_t *data, uint32_t len)
 {
-    usbd_ep_write(CDC_IN_EP, data, len, NULL);// test if zlp is work.
+    tx_busy = true;
+    memcpy(tx_data, data, len);
+    usbd_ep_start_write(CDC_IN_EP, tx_data, len);
     return 0;
 }
 
 static uint32_t cdc_peek(uint8_t **data)
 {
-    *data = buf_data;
+    *data = rx_data;
     return len_data;
 }
 
 static void cdc_consume()
 {
     len_data = 0;
-    usbd_ep_read(CDC_OUT_EP, NULL, 0, NULL);
+    usbd_ep_start_read(CDC_OUT_EP, rx_data, CDC_MAX_MPS);
 }
 
 static np_comm_cb_t cdc_comm_cb =
