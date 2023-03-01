@@ -17,7 +17,7 @@ typedef struct __attribute__((__packed__))
     uint8_t busy_bit;
     uint8_t busy_state;
     uint32_t freq;
-} Conf;
+} SpiNorConf;
 
 SpiNorInfo::SpiNorInfo()
 {
@@ -30,7 +30,7 @@ SpiNorInfo::~SpiNorInfo()
 
 const QByteArray &SpiNorInfo::getHalConf()
 {
-    Conf conf;
+    SpiNorConf conf;
 
     conf.page_offset = static_cast<uint8_t>(params[CHIP_PARAM_PAGE_OFF]);
     conf.read_cmd = static_cast<uint8_t>(params[CHIP_PARAM_READ_CMD]);

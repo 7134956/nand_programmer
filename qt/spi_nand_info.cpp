@@ -16,7 +16,7 @@ typedef struct __attribute__((__packed__))
     uint8_t plane_select_have;
     uint8_t die_select_type;
     uint32_t freq;
-} Conf;
+} SpiNandConf;
 
 SpiNandInfo::SpiNandInfo()
 {
@@ -29,7 +29,7 @@ SpiNandInfo::~SpiNandInfo()
 
 const QByteArray &SpiNandInfo::getHalConf()
 {
-    Conf conf;
+    SpiNandConf conf;
     conf.spare_offset = getPageSize();
     conf.mode_data = static_cast<uint8_t>(params[CHIP_PARAM_MODE_DATA]);
     conf.unlock_data = static_cast<uint8_t>(params[CHIP_PARAM_UNLOCK_DATA]);
