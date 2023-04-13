@@ -4,15 +4,17 @@
 
 CherryUSB 是一个小而美的、可移植性高的、用于嵌入式系统(带 USB ip)的 USB 主从协议栈。
 
-![CherryUSB](./docs/asserts/usb_outline.png)
+![CherryUSB](./docs/assets/usb_outline.png)
 
 ## 为什么选择
 
-- 面向 ip 编程，使得相同的 usb ip 驱动无需重复编写，仅需实现不相同的部分(例如实现 `usb_xx_low_level_init`：包含 usb 时钟、usb gpio、usb 中断)
-- 代码树状化编写，轻松理解 usb 概念、枚举过程、class 驱动加载
-- Class 驱动模板化，轻松实现复合设备和自定义添加驱动
-- 将 usb 的复杂传输简单化，使得用户能够像 uart、dma 一样轻松使用 usb
-- 少量的目录结构，少量的 api，少量的 codesize，极致的 usb 带宽
+- 代码精简，并且内存占用极小，详细参考下面表格，而且还可进一步的裁剪
+- 全面的 class 驱动，并且主从 class 驱动全部模板化，方便用户增加新的 class 驱动以及学习的时候查找规律
+- 可供用户使用的 API 非常少，并且分类清晰。从机：初始化 + 注册类、命令回调类、数据收发类；主机：初始化 + 查找类、数据收发类
+- 树状化编程，代码层层递进，方便用户理清函数调用关系、枚举和 class 驱动加载过程
+- 标准化的 porting 接口，相同 ip 无需重写驱动，并且 porting 驱动也进行了模板化，方便用户新增 porting。
+- 主从收发接口的使用等价于 uart tx/rx dma 的使用，长度也没有限制
+- 能够达到 USB 硬件理论带宽
 
 ## 目录结构
 
@@ -57,21 +59,20 @@ CherryUSB Device 协议栈当前实现以下功能：
 - 支持 USB AUDIO CLASS (UAC1.0、UAC2.0)
 - 支持 Device Firmware Upgrade CLASS (DFU)
 - 支持 USB MIDI CLASS (MIDI)
-- 支持 Test and Measurement CLASS (TMC)
 - 支持 Remote NDIS (RNDIS)
 - 支持 WINUSB1.0、WINUSB2.0(带 BOS )
 - 支持 Vendor 类 class
 
 CherryUSB Device 协议栈资源占用说明（GCC 10.2 with -O2）：
 
-|   file      |  FLASH (Byte)  |  RAM (Byte)  |
-|:-----------:|:--------------:|:------------:|
-|usbd_core.c  |  3045          | 373          |
-|usbd_cdc.c   |  302           | 20           |
-|usbd_msc.c   |  2452          | 132          |
-|usbd_hid.c   |  784           | 201          |
-|usbd_audio.c |  438           | 14           |
-|usbd_video.c |  402           | 4            |
+|   file        |  FLASH (Byte)  |  No Cache RAM (Byte)      |  RAM (Byte)   |  Heap (Byte)     |
+|:-------------:|:--------------:|:-------------------------:|:-------------:|:----------------:|
+|usbd_core.c    |  3263          | 384                       | 17            | 0                |
+|usbd_cdc.c     |  490           | 0                         | 0             | 0                |
+|usbd_msc.c     |  2772          | 128 + 512(default)        | 16            | 0                |
+|usbd_hid.c     |  501           | 0                         | 0             | 0                |
+|usbd_audio.c   |  1208          | 0                         | 4             | 0                |
+|usbd_video.c   |  2272          | 0                         | 82            | 0                |
 
 ## Host 协议栈简介
 
@@ -86,6 +87,8 @@ CherryUSB Host 协议栈当前实现以下功能：
 - 支持 Communication Device Class (CDC)
 - 支持 Human Interface Device (HID)
 - 支持 Mass Storage Class (MSC)
+- Support USB Video CLASS
+- Support USB Audio CLASS
 - 支持 Remote NDIS (RNDIS)
 - 支持 Vendor 类 class
 
@@ -93,13 +96,25 @@ CherryUSB Host 协议栈当前实现以下功能：
 
 CherryUSB Host 协议栈资源占用说明（GCC 10.2 with -O2）：
 
-|   file        |  FLASH (Byte)  |  RAM (Byte)  |
-|:-------------:|:--------------:|:------------:|
-|usbh_core.c    |  7992          | 472          |
-|usbh_cdc_acm.c |  1208          | 4            |
-|usbh_msc.c     |  2239          | 4            |
-|usbh_hid.c     |  930           | 4            |
-|usbh_hub.c     |  3878          | 14           |
+|   file        |  FLASH (Byte)  |  No Cache RAM (Byte)            |  RAM (Byte)                 |  Heap (Byte)                    |
+|:-------------:|:--------------:|:-------------------------------:|:---------------------------:|:-------------------------------:|
+|usbh_core.c    |  4417          | 512                             | 28                          | sizeof(struct usbh_urb)         |
+|usbh_hub.c     |  4895          | 32 + 1* (1+n) | 16 + sizeof(struct usbh_hub) * (1+n)          | 0                               |
+|usbh_cdc_acm.c |  1064          | 7                               | 4                           | sizeof(struct usbh_cdc_acm) * x |
+|usbh_msc.c     |  1776          | 32                              | 4                           | sizeof(struct usbh_msc) * x     |
+|usbh_hid.c     |  922           | 128                             | 4                           | sizeof(struct usbh_hid) * x     |
+|usbh_video.c   |  3592          | 128                             | 4                           | sizeof(struct usbh_video) * x   |
+|usbh_audio.c   |  3230          | 128                             | 4                           | sizeof(struct usbh_audio) * x   |
+
+其中，`sizeof(struct usbh_hub)` 和 `sizeof(struct usbh_hubport)` 受以下宏影响：
+
+```
+#define CONFIG_USBHOST_MAX_EXTHUBS          1
+#define CONFIG_USBHOST_MAX_EHPORTS          4
+#define CONFIG_USBHOST_MAX_INTERFACES       6
+#define CONFIG_USBHOST_MAX_INTF_ALTSETTINGS 1
+#define CONFIG_USBHOST_MAX_ENDPOINTS        4
+```
 
 ## 文档教程
 
@@ -115,20 +130,25 @@ USB 基本知识点与 CherryUSB Device 协议栈是如何编写的，参考 [Ch
 
 ## 示例仓库
 
-|   厂商       |  芯片或者系列    | USB IP| 仓库链接 |
-|:-------------:|:----------:|:----------:|:----------:|
-|Bouffalolab    |  BL702 | bouffalolab|[bl_mcu_sdk](https://github.com/bouffalolab/bl_mcu_sdk/tree/master/examples/usb)|
-|Essemi    |  ES32F36xx | musb |[es32f369_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/es32)|
-|AllwinnerTech    |  F1C100S | musb |[cherryusb_rtt_f1c100s](https://github.com/CherryUSB/cherryusb_rtt_f1c100s)|
-|ST    |  STM32F103C8T6 | fsdev |[stm32f103_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32f103c8t6)|
-|ST    |  STM32F4 | dwc2 |[stm32f429_device_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32f429igt6)   [stm32f429_host_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_host/stm32f429igt6)|
-|ST    |  STM32H7 | dwc2 |[stm32h743_device_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32h743vbt6)   [stm32h743_host_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_host/stm32h743xih6)|
-|WCH    |  CH32V307 | ch32_usbfs |[ch32v307_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/ch32/usb_device/CH32V307VCT6)|
-|WCH    |  CH57x | ch58x |[ch57x_repo](https://github.com/CherryUSB/cherryusb_ch57x)|
-|Nuvoton    |  Nuc442 | nuvoton |[nuc442_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/nuvoton/usb_device/nuc442)|
-|Nordicsemi |  Nrf52840 | nrf5x |[nrf5x_repo](https://github.com/CherryUSB/cherryusb_nrf5x)|
-|Geehy    |  APM32E10x APM32F0xx| fsdev |[apm32_repo](https://github.com/CherryUSB/cherryusb_apm32)|
-|Mindmotion    |  MM32L3xx | mm32 |[mm32_repo](https://github.com/CherryUSB/cherryusb_mm32)|
+注意：0.4.1 版本以后 dcd 驱动进行了重构，部分仓库不做长期维护，所以如果使用高版本需要自行更新
+
+|   厂商               |  芯片或者系列      | USB IP| 仓库链接 |      对应 master 版本        |
+|:--------------------:|:------------------:|:-----:|:--------:|:---------------------------:|
+|Bouffalolab    |  BL702/BL616/BL808 | bouffalolab/ehci|[bl_mcu_sdk](https://github.com/CherryUSB/cherryusb_bouffalolab)| latest |
+|ST    |  STM32F103C8T6 | fsdev |[stm32f103_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32f103c8t6)|latest |
+|ST    |  STM32F4 | dwc2 |[stm32f429_device_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32f429igt6)   [stm32f429_host_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_host/stm32f429igt6)|latest |
+|ST    |  STM32H7 | dwc2 |[stm32h743_device_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_device/stm32h743vbt6)   [stm32h743_host_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/stm32/usb_host/stm32h743xih6)|latest |
+|HPMicro    |  HPM6750 | hpm/ehci |[hpm_repo](https://github.com/CherryUSB/cherryusb_hpmicro)|v0.6.0 |
+|Essemi    |  ES32F36xx | musb |[es32f369_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/es32)|latest |
+|AllwinnerTech    |  F1C100S | musb |[cherryusb_rtt_f1c100s](https://github.com/CherryUSB/cherryusb_rtt_f1c100s)|latest |
+|Phytium |  e2000 | xhci |[phytium _repo](https://gitee.com/phytium_embedded/phytium-standalone-sdk)|latest |
+|Raspberry pi |  rp2040 | rp2040 |[rp2040_repo](https://github.com/sakumisu/CherryUSB/tree/master/demo/rp2040)|latest |
+|WCH    |  CH32V307/ch58x | ch32_usbfs/ch32_usbhs/ch58x |[wch_repo](https://github.com/CherryUSB/cherryusb_wch)|latest |
+|Nordicsemi |  Nrf52840 | nrf5x |[nrf5x_repo](https://github.com/CherryUSB/cherryusb_nrf5x)|latest |
+|Nuvoton    |  Nuc442 | nuvoton |[nuc442_repo](https://github.com/CherryUSB/cherryusb_nuc442)|v0.4.1 |
+|Geehy    |  APM32E10x APM32F0xx| fsdev |[apm32_repo](https://github.com/CherryUSB/cherryusb_apm32)|v0.4.1 |
+|Espressif    |  esp32 | dwc2 |[esp32_repo](https://github.com/CherryUSB/cherryusb_esp32)|v0.4.1 |
+|Mindmotion    |  MM32L3xx | mm32 |[mm32_repo](https://github.com/CherryUSB/cherryusb_mm32)|v0.4.1 |
 
 ## Contact
 
