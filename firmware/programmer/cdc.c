@@ -110,8 +110,8 @@ static const uint8_t cdc_descriptor[] = {
 
 uint8_t rx_data[CDC_MAX_MPS];
 uint8_t tx_data[CDC_MAX_MPS];
-uint32_t len_data = 0;
-bool tx_busy = false;
+volatile uint32_t len_data = 0;
+volatile bool tx_busy = false;
 
 void usbd_configure_done_callback(void)
 {
@@ -125,11 +125,7 @@ void usbd_cdc_acm_bulk_out(uint8_t ep, uint32_t nbytes)
 
 void usbd_cdc_acm_bulk_in(uint8_t ep, uint32_t nbytes)
 {
-//    if(tx_busy) {
-        tx_busy = false;
-        /* send zlp */
-//        usbd_ep_start_write(CDC_IN_EP, NULL, 0);
-//    }
+    tx_busy = false;
 }
 
 /*!< endpoint call back */
@@ -167,13 +163,9 @@ void usbd_cdc_acm_set_dtr(uint8_t intf, bool dtr)
     }
 }
 
-static int cdc_send_ready()
-{
-    return !tx_busy;
-}
-
 static int cdc_send(uint8_t *data, uint32_t len)
 {
+    while(tx_busy){};
     tx_busy = true;
     memcpy(tx_data, data, len);
     usbd_ep_start_write(CDC_IN_EP, tx_data, len);
@@ -195,7 +187,6 @@ static void cdc_consume()
 static np_comm_cb_t cdc_comm_cb =
 {
     .send = cdc_send,
-    .send_ready = cdc_send_ready,
     .peek = cdc_peek,
     .consume = cdc_consume,
 };

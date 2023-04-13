@@ -1006,8 +1006,6 @@ static int _np_cmd_nand_read(np_prog_t *prog)
 
             memcpy(resp->data, page.buf + page.offset, send_len);
 
-            while (!np_comm_cb->send_ready());
-
             resp->info = send_len;
             if (np_comm_cb->send(np_packet_send_buf,
                 resp_header_size + send_len))
