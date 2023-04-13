@@ -11,7 +11,8 @@
 #include "log.h"
 #include "version.h"
 #include "flash.h"
-#include "spi_flash.h"
+#include "spi_nor_flash.h"
+#include "spi_nand_flash.h"
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
@@ -253,7 +254,7 @@ typedef struct
 static np_comm_cb_t *np_comm_cb;
 static np_prog_t prog;
 
-static flash_hal_t *hal[] = { &hal_fsmc, &hal_spi };
+static flash_hal_t *hal[] = { &hal_fsmc, &hal_spi_nor, &hal_spi_nand };
 
 uint8_t np_packet_send_buf[NP_PACKET_BUF_SIZE];
 

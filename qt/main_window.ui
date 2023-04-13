@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>570</height>
+    <height>603</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -158,12 +158,6 @@
          <pointsize>8</pointsize>
         </font>
        </property>
-       <attribute name="horizontalHeaderStretchLastSection">
-        <bool>true</bool>
-       </attribute>
-       <attribute name="verticalHeaderStretchLastSection">
-        <bool>false</bool>
-       </attribute>
       </widget>
       <widget class="QWidget" name="layoutWidget">
        <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0" columnstretch="0" rowminimumheight="0,0" columnminimumwidth="0">
@@ -332,7 +326,8 @@
     </property>
     <addaction name="actionProgrammer"/>
     <addaction name="actionParallelChipDb"/>
-    <addaction name="actionSpiChipDb"/>
+	<addaction name="actionSpiNorDb"/>
+    <addaction name="actionSpiNandDb"/>
     <addaction name="separator"/>
     <addaction name="actionFirmwareUpdate"/>
    </widget>
@@ -435,9 +430,17 @@
     <string>Firmware update</string>
    </property>
   </action>
-  <action name="actionSpiChipDb">
+  <action name="actionSpiNandDb">
    <property name="text">
-    <string>SPI chip database</string>
+    <string>SPI NAND database</string>
+   </property>
+  </action>
+  <action name="actionSpiNorDb">
+   <property name="text">
+    <string>SPI NOR database</string>
+   </property>
+   <property name="toolTip">
+    <string>SPI NOR database</string>
    </property>
   </action>
  </widget>

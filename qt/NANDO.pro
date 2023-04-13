@@ -37,10 +37,14 @@ SOURCES += main.cpp\
     logger.cpp \
     dataviewer.cpp \
     serial_port.cpp \
-    spi_chip_db.cpp \
-    spi_chip_db_dialog.cpp \
-    spi_chip_db_table_model.cpp \
-    spi_chip_info.cpp \
+    spi_nand_db.cpp \
+    spi_nand_db_dialog.cpp \
+    spi_nand_db_table_model.cpp \
+    spi_nand_info.cpp \
+    spi_nor_db.cpp \
+    spi_nor_db_dialog.cpp \
+    spi_nor_db_table_model.cpp \
+    spi_nor_info.cpp \
     writer.cpp \
     reader.cpp \
     settings_programmer_dialog.cpp \
@@ -61,10 +65,14 @@ HEADERS += main_window.h \
     dataviewer.h \
     cmd.h \
     serial_port.h \
-    spi_chip_db.h \
-    spi_chip_db_dialog.h \
-    spi_chip_db_table_model.h \
-    spi_chip_info.h \
+    spi_nand_db.h \
+    spi_nand_db_dialog.h \
+    spi_nand_db_table_model.h \
+    spi_nand_info.h \
+    spi_nor_db.h \
+    spi_nor_db_dialog.h \
+    spi_nor_db_table_model.h \
+    spi_nor_info.h \
     writer.h \
     reader.h \
     settings_programmer_dialog.h \
@@ -80,7 +88,8 @@ FORMS += main_window.ui \
     settings_programmer_dialog.ui \
     about_dialog.ui \
     firmware_update_dialog.ui \
-    spi_chip_db_dialog.ui
+    spi_nand_db_dialog.ui \
+    spi_nor_db_dialog.ui
 
 QMAKE_CXXFLAGS += -std=c++17 -Wextra -Werror
 mingw:QMAKE_CXXFLAGS += -mno-ms-bitfields

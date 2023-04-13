@@ -3,20 +3,20 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#ifndef SPI_CHIP_DB_TABLE_MODEL_H
-#define SPI_CHIP_DB_TABLE_MODEL_H
+#ifndef SPI_NOR_DB_TABLE_MODEL_H
+#define SPI_NOR_DB_TABLE_MODEL_H
 
-#include "spi_chip_db.h"
+#include "spi_nor_db.h"
 #include <QAbstractTableModel>
 
-class SpiChipDbTableModel : public QAbstractTableModel
+class SpiNorDbTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 
-    SpiChipDb *chipDb;
+    SpiNorDb *chipDb;
 
 public:
-    explicit SpiChipDbTableModel(SpiChipDb *chipDb, QObject *parent = nullptr);
+    explicit SpiNorDbTableModel(SpiNorDb *chipDb, QObject *parent = nullptr);
     int rowCount(const QModelIndex & /*parent*/) const override;
     int columnCount(const QModelIndex & /*parent*/) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -31,4 +31,4 @@ public:
     void reset();
 };
 
-#endif // SPI_CHIP_DB_TABLE_MODEL_H
+#endif // SPI_NOR_DB_TABLE_MODEL_H

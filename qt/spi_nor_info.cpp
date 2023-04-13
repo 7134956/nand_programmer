@@ -3,7 +3,7 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#include "spi_chip_info.h"
+#include "spi_nor_info.h"
 
 typedef struct __attribute__((__packed__))
 {
@@ -19,16 +19,16 @@ typedef struct __attribute__((__packed__))
     uint32_t freq;
 } Conf;
 
-SpiChipInfo::SpiChipInfo()
+SpiNorInfo::SpiNorInfo()
 {
-    hal = CHIP_HAL_SPI;
+    hal = CHIP_HAL_SPI_NOR;
 }
 
-SpiChipInfo::~SpiChipInfo()
+SpiNorInfo::~SpiNorInfo()
 {
 }
 
-const QByteArray &SpiChipInfo::getHalConf()
+const QByteArray &SpiNorInfo::getHalConf()
 {
     Conf conf;
 
@@ -49,7 +49,7 @@ const QByteArray &SpiChipInfo::getHalConf()
     return halConf;
 }
 
-quint64 SpiChipInfo::getParam(uint32_t num)
+quint64 SpiNorInfo::getParam(uint32_t num)
 {
     if (num >= CHIP_PARAM_NUM)
         return 0;
@@ -57,7 +57,7 @@ quint64 SpiChipInfo::getParam(uint32_t num)
     return params[num];
 }
 
-int SpiChipInfo::setParam(uint32_t num, quint64 value)
+int SpiNorInfo::setParam(uint32_t num, quint64 value)
 {
     if (num >= CHIP_PARAM_NUM)
         return -1;

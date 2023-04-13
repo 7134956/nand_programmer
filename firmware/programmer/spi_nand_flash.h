@@ -3,9 +3,11 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef _SPI_NAND_FLASH_H_
+#define _SPI_NAND_FLASH_H_
 
-#define SW_VERSION "4.1.0"
+#include "flash_hal.h"
 
-#endif // VERSION_H
+extern flash_hal_t hal_spi_nand;
+
+#endif /* _SPI_NAND_FLASH_H_ */

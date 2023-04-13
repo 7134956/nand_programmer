@@ -13,7 +13,7 @@
 #include "reader.h"
 #include "cmd.h"
 #include "parallel_chip_db.h"
-#include "spi_chip_db.h"
+#include "spi_nor_db.h"
 #include "serial_port.h"
 
 using namespace std;

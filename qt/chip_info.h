@@ -14,7 +14,8 @@ protected:
     enum ChipHal
     {
         CHIP_HAL_PARALLEL = 0,
-        CHIP_HAL_SPI = 1,
+        CHIP_HAL_SPI_NOR = 1,
+        CHIP_HAL_SPI_NAND = 2,
         CHIP_HAL_LAST
     };
 

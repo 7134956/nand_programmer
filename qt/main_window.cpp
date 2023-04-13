@@ -7,10 +7,11 @@
 #include "ui_main_window.h"
 #include "settings_programmer_dialog.h"
 #include "parallel_chip_db_dialog.h"
-#include "spi_chip_db_dialog.h"
+#include "spi_nor_db_dialog.h"
+#include "spi_nand_db_dialog.h"
 #include "firmware_update_dialog.h"
 #include "parallel_chip_db.h"
-#include "spi_chip_db.h"
+#include "spi_nor_db.h"
 #include "logger.h"
 #include "about_dialog.h"
 #include "settings.h"
@@ -91,8 +92,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
         SLOT(slotSettingsProgrammer()));
     connect(ui->actionParallelChipDb, SIGNAL(triggered()), this,
         SLOT(slotSettingsParallelChipDb()));
-    connect(ui->actionSpiChipDb, SIGNAL(triggered()), this,
-        SLOT(slotSettingsSpiChipDb()));
+    connect(ui->actionSpiNorDb, SIGNAL(triggered()), this,
+        SLOT(slotSettingsSpiNorDb()));
+    connect(ui->actionSpiNandDb, SIGNAL(triggered()), this,
+        SLOT(slotSettingsSpiNandDb()));
     connect(ui->actionAbout, SIGNAL(triggered()), this,
         SLOT(slotAboutDialog()));
     connect(ui->detectPushButton, SIGNAL(clicked()), this,
@@ -556,8 +559,10 @@ void MainWindow::slotSelectChip(int selectedChipNum)
 
     if ((chipInfo = parallelChipDb.chipInfoGetByName(name)))
         currentChipDb = &parallelChipDb;
-    else if ((chipInfo = spiChipDb.chipInfoGetByName(name)))
-        currentChipDb = &spiChipDb;
+    else if ((chipInfo = spiNorDb.chipInfoGetByName(name)))
+        currentChipDb = &spiNorDb;
+    else if ((chipInfo = spiNandDb.chipInfoGetByName(name)))
+        currentChipDb = &spiNandDb;
     else
     {
         qCritical() << "Failed to find chip in DB";
@@ -575,14 +580,12 @@ void MainWindow::slotSelectChip(int selectedChipNum)
 
 void MainWindow::detectChipDelayed()
 {
-
-    if (currentChipDb == &spiChipDb)
+    if (currentChipDb == &spiNandDb)
         qInfo() << "Chip not found in database";
+    else if(currentChipDb == &spiNorDb)
+        detectChip(&spiNandDb);
     else
-    {
-        // Search in next DB
-        detectChip(&spiChipDb);
-    }
+        detectChip(&spiNorDb);
 }
 
 void MainWindow::setChipNameDelayed()
@@ -738,9 +741,17 @@ void MainWindow::slotSettingsParallelChipDb()
         updateChipList();
 }
 
-void MainWindow::slotSettingsSpiChipDb()
+void MainWindow::slotSettingsSpiNorDb()
 {
-    SpiChipDbDialog chipDbDialog(&spiChipDb, this);
+    SpiNorDbDialog chipDbDialog(&spiNorDb, this);
+
+    if (chipDbDialog.exec() == QDialog::Accepted)
+        updateChipList();
+}
+
+void MainWindow::slotSettingsSpiNandDb()
+{
+    SpiNandDbDialog chipDbDialog(&spiNandDb, this);
 
     if (chipDbDialog.exec() == QDialog::Accepted)
         updateChipList();
@@ -755,7 +766,8 @@ void MainWindow::updateChipList()
     ui->chipSelectComboBox->addItem(CHIP_NAME_DEFAULT);
 
     chipNames.append(parallelChipDb.getNames());
-    chipNames.append(spiChipDb.getNames());
+    chipNames.append(spiNorDb.getNames());
+    chipNames.append(spiNandDb.getNames());
     foreach (const QString &str, chipNames)
     {
         if (str.isEmpty())

@@ -3,28 +3,28 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#ifndef SPI_CHIP_DB_DALOG_H
-#define SPI_CHIP_DB_DALOG_H
+#ifndef SPI_NAND_DB_DALOG_H
+#define SPI_NAND_DB_DALOG_H
 
-#include "spi_chip_db_table_model.h"
+#include "spi_nand_db_table_model.h"
 #include <QDialog>
 #include <QSortFilterProxyModel>
 
 namespace Ui {
-class SpiChipDbDialog;
+class SpiNandDbDialog;
 }
 
-class SpiChipDbDialog : public QDialog
+class SpiNandDbDialog : public QDialog
 {
     Q_OBJECT
 
-    Ui::SpiChipDbDialog *ui;
-    SpiChipDbTableModel chipDbTableModel;
+    Ui::SpiNandDbDialog *ui;
+    SpiNandDbTableModel chipDbTableModel;
     QSortFilterProxyModel chipDbProxyModel;
 
 public:
-    explicit SpiChipDbDialog(SpiChipDb *chipDb, QWidget *parent = nullptr);
-    ~SpiChipDbDialog();
+    explicit SpiNandDbDialog(SpiNandDb *chipDb, QWidget *parent = nullptr);
+    ~SpiNandDbDialog();
 
 private slots:
     void slotAddChipDbButtonClicked();
@@ -33,4 +33,4 @@ private slots:
     void slotCancelButtonClicked();
 };
 
-#endif // SPI_CHIP_DB_DALOG_H
+#endif // SPI_NAND_DB_DALOG_H

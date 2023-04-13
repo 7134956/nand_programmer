@@ -3,11 +3,11 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#ifndef _SPI_FLASH_H_
-#define _SPI_FLASH_H_
+#ifndef _SPI_NOR_FLASH_H_
+#define _SPI_NOR_FLASH_H_
 
 #include "flash_hal.h"
 
-extern flash_hal_t hal_spi;
+extern flash_hal_t hal_spi_nor;
 
-#endif /* _SPI_FLASH_H_ */
+#endif /* _SPI_NOR_FLASH_H_ */

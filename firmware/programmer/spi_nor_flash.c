@@ -3,7 +3,7 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#include "spi_flash.h"
+#include "spi_nor_flash.h"
 #include "ch32v30x.h"
 
 #define SPI_FLASH_CS_PIN GPIO_Pin_15
@@ -12,10 +12,6 @@
 #define SPI_FLASH_MOSI_PIN GPIO_Pin_12
 
 #define FLASH_DUMMY_BYTE 0xA5
-
-#define FLASH_READY 0
-#define FLASH_BUSY  1
-#define FLASH_TIMEOUT 2
 
 /* 1st addressing cycle */
 #define ADDR_1st_CYCLE(ADDR) (uint8_t)((ADDR)& 0xFF)
@@ -158,7 +154,7 @@ static int spi_flash_init(void *conf, uint32_t conf_size)
     spi_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     spi_init.SPI_Mode = SPI_Mode_Master;
     spi_init.SPI_DataSize = SPI_DataSize_8b;
-    spi_init.SPI_CPOL = SPI_CPOL_Low; //Instead of SPI_CPOL_High! CH32V307 bug?
+    spi_init.SPI_CPOL = SPI_CPOL_High;
     spi_init.SPI_CPHA = SPI_CPHA_2Edge;
     spi_init.SPI_NSS = SPI_NSS_Soft;
     spi_init.SPI_BaudRatePrescaler =
@@ -207,7 +203,7 @@ static inline uint8_t spi_flash_read_byte()
 static uint32_t spi_flash_read_status()
 {
     uint8_t status;
-    uint32_t flash_status = FLASH_READY;
+    uint32_t flash_status = FLASH_STATUS_READY;
 
     spi_flash_select_chip();
 
@@ -216,9 +212,9 @@ static uint32_t spi_flash_read_status()
     status = spi_flash_read_byte();
 
     if (spi_conf.busy_state == 1 && (status & (1 << spi_conf.busy_bit)))
-        flash_status = FLASH_BUSY;
+        flash_status = FLASH_STATUS_BUSY;
     else if (spi_conf.busy_state == 0 && !(status & (1 << spi_conf.busy_bit)))
-        flash_status = FLASH_BUSY;
+        flash_status = FLASH_STATUS_BUSY;
 
     spi_flash_deselect_chip();
 
@@ -232,14 +228,14 @@ static uint32_t spi_flash_get_status()
     status = spi_flash_read_status();
 
     /* Wait for an operation to complete or a TIMEOUT to occur */
-    while (status == FLASH_BUSY && timeout)
+    while (status == FLASH_STATUS_BUSY && timeout)
     {
         status = spi_flash_read_status();
         timeout --;
     }
 
     if (!timeout)
-        status = FLASH_TIMEOUT;
+        status = FLASH_STATUS_TIMEOUT;
 
     return status;
 }
@@ -314,7 +310,7 @@ static uint32_t spi_flash_read_data(uint8_t *buf, uint32_t page,
 
     spi_flash_deselect_chip();
 
-    return FLASH_READY;
+    return FLASH_STATUS_READY;
 }
 
 static uint32_t spi_flash_read_page(uint8_t *buf, uint32_t page,
@@ -353,7 +349,7 @@ static inline bool spi_flash_is_bb_supported()
     return false;
 }
 
-flash_hal_t hal_spi =
+flash_hal_t hal_spi_nor =
 {
     .init = spi_flash_init,
     .uninit = spi_flash_uninit,

@@ -37,7 +37,7 @@ INCLUDES+=-I$(USB_DIR)core
 INCLUDES+=-I$(USB_DIR)port/ch32
 INCLUDES+=-I$(USB_DIR)class/cdc
 
-CFLAGS=-g -Wall -Werror -Wunused -Wuninitialized -Os
+CFLAGS=-g -Wall -Werror -Wunused -Wuninitialized -Ofast
 CFLAGS+=$(INCLUDES) -MMD -MP
 CFLAGS+=-ffunction-sections -fdata-sections
 CFLAGS+=-march=rv32imafc -mabi=ilp32f -msmall-data-limit=8 -mno-save-restore
@@ -53,8 +53,8 @@ STARTUP=startup_ch32v30x_D8C.S
 USB_SRCS=usbd_cdc.c usbd_core.c usb_dc_usbhs.c
 
 SRCS=main.c system_ch32v30x.c syscalls.c fsmc_nand.c led.c uart.c jtag.c \
-  clock.c cdc.c nand_programmer.c nand_bad_block.c flash.c spi_flash.c \
-  $(USB_SRCS)
+  clock.c cdc.c nand_programmer.c nand_bad_block.c flash.c spi_nor_flash.c \
+  spi_nand_flash.c $(USB_SRCS)
 
 OBJS=$(addprefix $(OBJ_DIR)/,$(SRCS:.c=.o)) \
   $(addprefix $(OBJ_DIR)/,$(STARTUP:.s=.o))

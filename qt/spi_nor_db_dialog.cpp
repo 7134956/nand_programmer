@@ -3,15 +3,15 @@
  *  it under the terms of the GNU General Public License version 3.
  */
 
-#include "spi_chip_db_dialog.h"
-#include "ui_spi_chip_db_dialog.h"
+#include "spi_nor_db_dialog.h"
+#include "ui_spi_nor_db_dialog.h"
 
 #define HEADER_LONG_WIDTH 120
 #define HEADER_MED_WIDTH 110
 #define HEADER_SHORT_WIDTH 50
 
-SpiChipDbDialog::SpiChipDbDialog(SpiChipDb *chipDb, QWidget *parent) :
-    QDialog(parent), ui(new Ui::SpiChipDbDialog),
+SpiNorDbDialog::SpiNorDbDialog(SpiNorDb *chipDb, QWidget *parent) :
+    QDialog(parent), ui(new Ui::SpiNorDbDialog),
     chipDbTableModel(chipDb, parent)
 {
     ui->setupUi(this);
@@ -23,17 +23,17 @@ SpiChipDbDialog::SpiChipDbDialog(SpiChipDb *chipDb, QWidget *parent) :
 
     chipDbProxyModel.setSourceModel(&chipDbTableModel);
     ui->chipDbTableView->setModel(&chipDbProxyModel);
-    ui->chipDbTableView->setColumnWidth(SpiChipDb::CHIP_PARAM_NAME,
+    ui->chipDbTableView->setColumnWidth(SpiNorDb::CHIP_PARAM_NAME,
         HEADER_LONG_WIDTH);
-    ui->chipDbTableView->setColumnWidth(SpiChipDb::CHIP_PARAM_PAGE_SIZE,
+    ui->chipDbTableView->setColumnWidth(SpiNorDb::CHIP_PARAM_PAGE_SIZE,
         HEADER_MED_WIDTH);
-    ui->chipDbTableView->setColumnWidth(SpiChipDb::CHIP_PARAM_BLOCK_SIZE,
+    ui->chipDbTableView->setColumnWidth(SpiNorDb::CHIP_PARAM_BLOCK_SIZE,
         HEADER_MED_WIDTH);
-    ui->chipDbTableView->setColumnWidth(SpiChipDb::CHIP_PARAM_TOTAL_SIZE,
+    ui->chipDbTableView->setColumnWidth(SpiNorDb::CHIP_PARAM_TOTAL_SIZE,
         HEADER_MED_WIDTH);
 
-    for (int i = SpiChipDb::CHIP_PARAM_PAGE_OFF;
-         i <= SpiChipDb::CHIP_PARAM_FREQ; i++)
+    for (int i = SpiNorDb::CHIP_PARAM_PAGE_OFF;
+         i <= SpiNorDb::CHIP_PARAM_FREQ; i++)
     {
         ui->chipDbTableView->setColumnWidth(i, HEADER_MED_WIDTH);
     }
@@ -48,17 +48,17 @@ SpiChipDbDialog::SpiChipDbDialog(SpiChipDb *chipDb, QWidget *parent) :
         SIGNAL(clicked()), this, SLOT(slotCancelButtonClicked()));
 }
 
-SpiChipDbDialog::~SpiChipDbDialog()
+SpiNorDbDialog::~SpiNorDbDialog()
 {
     delete ui;
 }
 
-void SpiChipDbDialog::slotAddChipDbButtonClicked()
+void SpiNorDbDialog::slotAddChipDbButtonClicked()
 {
     chipDbTableModel.addRow();
 }
 
-void SpiChipDbDialog::slotDelChipDbButtonClicked()
+void SpiNorDbDialog::slotDelChipDbButtonClicked()
 {
     QModelIndexList selection = ui->chipDbTableView->selectionModel()->
         selectedRows();
@@ -69,12 +69,12 @@ void SpiChipDbDialog::slotDelChipDbButtonClicked()
     chipDbTableModel.delRow(selection.at(0).row());
 }
 
-void SpiChipDbDialog::slotOkButtonClicked()
+void SpiNorDbDialog::slotOkButtonClicked()
 {
     chipDbTableModel.commit();
 }
 
-void SpiChipDbDialog::slotCancelButtonClicked()
+void SpiNorDbDialog::slotCancelButtonClicked()
 {
     chipDbTableModel.reset();
 }

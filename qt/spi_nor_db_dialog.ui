@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SpiChipDbDialog</class>
- <widget class="QDialog" name="SpiChipDbDialog">
+ <class>SpiNorDbDialog</class>
+ <widget class="QDialog" name="SpiNorDbDialog">
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
@@ -175,7 +175,7 @@
   <connection>
    <sender>okCancelButtonBox</sender>
    <signal>accepted()</signal>
-   <receiver>SpiChipDbDialog</receiver>
+   <receiver>SpiNorDbDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -191,7 +191,7 @@
   <connection>
    <sender>okCancelButtonBox</sender>
    <signal>rejected()</signal>
-   <receiver>SpiChipDbDialog</receiver>
+   <receiver>SpiNorDbDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
