@@ -1,7 +1,8 @@
 # NANDO (NANDopen) programmer
 
 ## General
-NANDO is open source NAND programmer based on CH32V307VCT6 processor. It supports parallel NAND and SPI flash programming.
+NANDO is open source NAND programmer based on low cost MCU CH32V307VCT6. It supports parallel NAND, SPI NOR, SPI NAND programming.
+High programming speed! For examle EM73C044SNB (1Gb) Write 110(s), Read 80(s).
 
 PCB boards:
 
@@ -37,15 +38,18 @@ K9F2G08U0C, HY27US08121B, TC58NVG2S3E, F59L2G81A, MX30LF2G18AC and others.
 
 See full list of supported chips [qt/nando_parallel_chip_db.csv](qt/nando_parallel_chip_db.csv)
 
-#### SPI flash
+#### SPI NOR flash
 AT45DB021D, MX25L8006E, W25Q16JV and others.
 
-See full list of supported chips [qt/nando_spi_chip_db.csv](qt/nando_spi_chip_db.csv)
+See full list of supported chips [qt/nando_spi_nor_db.csv](qt/nando_spi_nor_db.csv)
+
+#### SPI NAND flash
+GD5F1GQ4UBxIG, MT29F2G01, F50L2G41LB and others.
+
+See full list of supported chips [qt/nando_spi_nand_db.csv](qt/nando_spi_nand_db.csv)
 
 ## Release binaries
-You can download host application deb package for Ubuntu/Windows installer, firmware binary for
-STM32, schematic and gerber files from <a href="https://drive.google.com/drive/folders/1d5hP6MKbkEBGQe_xIRl4-A5LPt_-9QIN">Google Driver</a>.
-
+...
 
 ### License
 In general the sorce code, PCB and schematic are under GPLv3 license but with limitations of:
