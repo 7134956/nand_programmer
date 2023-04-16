@@ -53,8 +53,8 @@ STARTUP=startup_ch32v30x_D8C.S
 USB_SRCS=usbd_cdc.c usbd_core.c usb_dc_usbhs.c
 
 SRCS=main.c system_ch32v30x.c syscalls.c fsmc_nand.c led.c uart.c jtag.c \
-  clock.c cdc.c nand_programmer.c nand_bad_block.c flash.c spi_nor_flash.c \
-  spi_nand_flash.c $(USB_SRCS)
+  clock.c cdc.c nand_programmer.c nand_bad_block.c flash.c spi.c \
+  spi_nor_flash.c spi_nand_flash.c $(USB_SRCS)
 
 OBJS=$(addprefix $(OBJ_DIR)/,$(SRCS:.c=.o)) \
   $(addprefix $(OBJ_DIR)/,$(STARTUP:.s=.o))

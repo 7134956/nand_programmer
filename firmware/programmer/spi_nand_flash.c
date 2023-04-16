@@ -4,7 +4,7 @@
  */
 
 #include "spi_nand_flash.h"
-#include "ch32v30x.h"
+#include "spi.h"
 
 /* SPI NAND Command Set */
 #define _SPI_NAND_OP_GET_FEATURE                0x0F    /* Get Feature */
@@ -43,13 +43,6 @@
 #define _SPI_NAND_VAL_ERASE_FAIL                0x4     /* E_FAIL = Erase Fail */
 #define _SPI_NAND_VAL_PROGRAM_FAIL              0x8     /* P_FAIL = Program Fail */
 
-
-#define SPI_FLASH_CS_PIN GPIO_Pin_15
-#define SPI_FLASH_SCK_PIN GPIO_Pin_10
-#define SPI_FLASH_MISO_PIN GPIO_Pin_11
-#define SPI_FLASH_MOSI_PIN GPIO_Pin_12
-
-#define FLASH_DUMMY_BYTE 0xFF
 
 /* 1st addressing cycle */
 #define ADDR_1st_CYCLE(ADDR) (uint8_t)((ADDR)& 0xFF)
@@ -91,184 +84,22 @@ enum
 static uint32_t flash_last_operation = FLASH_OP_EMPTY;
 static uint32_t current_die = 0;
 
-static void spi_flash_gpio_init()
-{
-    GPIO_InitTypeDef gpio_init;
-
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-
-    /* Enable SPI peripheral clock */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
-
-    /* Remap SPI3 */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-    GPIO_PinRemapConfig(GPIO_Remap_SPI3, ENABLE);
-
-    /* Configure SPI SCK pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_SCK_PIN;
-    gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
-    gpio_init.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Configure SPI MOSI pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_MOSI_PIN;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Configure SPI MISO pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_MISO_PIN;
-    gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Configure SPI CS pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_CS_PIN;
-    gpio_init.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_Init(GPIOA, &gpio_init);
-}
-
-static void spi_flash_gpio_uninit()
-{
-    GPIO_InitTypeDef gpio_init;
-
-    GPIO_PinRemapConfig(GPIO_Remap_SPI3, DISABLE);
-
-    /* Disable SPI peripheral clock */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, DISABLE);
-
-    /* Disable SPI SCK pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_SCK_PIN;
-    gpio_init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Disable SPI MISO pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_MISO_PIN;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Disable SPI MOSI pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_MOSI_PIN;
-    GPIO_Init(GPIOC, &gpio_init);
-
-    /* Disable SPI CS pin */
-    gpio_init.GPIO_Pin = SPI_FLASH_CS_PIN;
-    GPIO_Init(GPIOA, &gpio_init);
-}
-
-static inline void spi_flash_select_chip()
-{
-    GPIO_ResetBits(GPIOA, SPI_FLASH_CS_PIN);
-}
-
-static inline void spi_flash_deselect_chip()
-{
-    GPIO_SetBits(GPIOA, SPI_FLASH_CS_PIN);
-}
-
-static uint16_t spi_flash_get_baud_rate_prescaler(uint32_t spi_freq_khz)
-{
-    uint32_t system_clock_khz = SystemCoreClock / 1000;
-
-    // Max SPI frequency for CH32V307
-    if(spi_freq_khz > 36000)
-        spi_freq_khz = 36000;
-
-    if (spi_freq_khz >= system_clock_khz / 2)
-        return SPI_BaudRatePrescaler_2;
-    else if (spi_freq_khz >= system_clock_khz / 4)
-        return SPI_BaudRatePrescaler_4;
-    else if (spi_freq_khz >= system_clock_khz / 8)
-        return SPI_BaudRatePrescaler_8;
-    else if (spi_freq_khz >= system_clock_khz / 16)
-        return SPI_BaudRatePrescaler_16;
-    else if (spi_freq_khz >= system_clock_khz / 32)
-        return SPI_BaudRatePrescaler_32;
-    else if (spi_freq_khz >= system_clock_khz / 64)
-        return SPI_BaudRatePrescaler_64;
-    else if (spi_freq_khz >= system_clock_khz / 128)
-        return SPI_BaudRatePrescaler_128;
-    else
-        return SPI_BaudRatePrescaler_256;
-}
-
-static int spi_flash_init(void *conf, uint32_t conf_size)
-{
-    SPI_InitTypeDef spi_init;
-
-    if (conf_size < sizeof(spi_conf_t))
-        return -1;
-    spi_conf = *(spi_conf_t *)conf;
-
-    spi_flash_gpio_init();
-
-    spi_flash_deselect_chip();
-
-    /* Configure SPI */
-    spi_init.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-    spi_init.SPI_Mode = SPI_Mode_Master;
-    spi_init.SPI_DataSize = SPI_DataSize_8b;
-    spi_init.SPI_CPOL = SPI_CPOL_High;
-    spi_init.SPI_CPHA = SPI_CPHA_2Edge;
-    spi_init.SPI_NSS = SPI_NSS_Soft;
-    spi_init.SPI_BaudRatePrescaler =
-        spi_flash_get_baud_rate_prescaler(spi_conf.freq);
-    spi_init.SPI_FirstBit = SPI_FirstBit_MSB;
-    spi_init.SPI_CRCPolynomial = 7;
-    SPI_Init(SPI3, &spi_init);
-
-    /* Enable SPI */
-    SPI_Cmd(SPI3, ENABLE);
-
-    /* Clear data register */
-    SPI_I2S_ReceiveData(SPI3);
-
-    spi_flash_chip_init();
-
-    return 0;
-}
-
-static void spi_flash_uninit()
-{
-    spi_flash_gpio_uninit();
-
-    /* Disable SPI */
-    SPI_Cmd(SPI3, DISABLE);
-}
-
-static uint8_t spi_flash_send_byte(uint8_t byte)
-{
-    /* Loop while DR register in not emplty */
-    while (SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_TXE) == RESET);
-
-    /* Send byte through the SPI3 peripheral to generate clock signal */
-    SPI_I2S_SendData(SPI3, byte);
-
-    /* Wait to receive a byte */
-    while (SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_RXNE) == RESET);
-
-    /* Return the byte read from the SPI bus */
-    return SPI_I2S_ReceiveData(SPI3);
-}
-
-static inline uint8_t spi_flash_read_byte()
-{
-    return spi_flash_send_byte(FLASH_DUMMY_BYTE);
-}
-
 static void spi_flash_set_feature(uint8_t addr, uint8_t data)
 {
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_SET_FEATURE);
-    spi_flash_send_byte(addr);
-    spi_flash_send_byte(data);
-    spi_flash_deselect_chip();
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_SET_FEATURE);
+    spi_send_byte(addr);
+    spi_send_byte(data);
+    spi_deselect_chip();
 }
 
 static void spi_flash_get_feature(uint8_t addr, uint8_t *data)
 {
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_GET_FEATURE);
-    spi_flash_send_byte(addr);
-    *data = spi_flash_read_byte();
-    spi_flash_deselect_chip();
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_GET_FEATURE);
+    spi_send_byte(addr);
+    *data = spi_read_byte();
+    spi_deselect_chip();
 }
 
 static uint32_t spi_flash_read_status()
@@ -308,10 +139,10 @@ static void spi_flash_select_die_cmd(uint32_t die)
 {
     switch(spi_conf.die_select_type) {
     case 1: {
-        spi_flash_select_chip();
-        spi_flash_send_byte(_SPI_NAND_OP_DIE_SELECT);
-        spi_flash_send_byte(die);
-        spi_flash_deselect_chip();
+        spi_select_chip();
+        spi_send_byte(_SPI_NAND_OP_DIE_SELECT);
+        spi_send_byte(die);
+        spi_deselect_chip();
         break;
     }
     case 2: {
@@ -347,19 +178,19 @@ static void spi_flash_select_die(uint32_t page)
 
 static void spi_flash_read_id(chip_id_t *chip_id)
 {
-    spi_flash_select_chip();
+    spi_select_chip();
 
-    spi_flash_send_byte(_SPI_NAND_OP_READ_ID);
-    spi_flash_send_byte(_SPI_NAND_ADDR_MANUFACTURE_ID);
+    spi_send_byte(_SPI_NAND_OP_READ_ID);
+    spi_send_byte(_SPI_NAND_ADDR_MANUFACTURE_ID);
 
-    chip_id->maker_id = spi_flash_read_byte();
-    chip_id->device_id = spi_flash_read_byte();
-    chip_id->third_id = spi_flash_read_byte();
-    chip_id->fourth_id = spi_flash_read_byte();
-    chip_id->fifth_id = spi_flash_read_byte();
-    chip_id->sixth_id = spi_flash_read_byte();
+    chip_id->maker_id = spi_read_byte();
+    chip_id->device_id = spi_read_byte();
+    chip_id->third_id = spi_read_byte();
+    chip_id->fourth_id = spi_read_byte();
+    chip_id->fifth_id = spi_read_byte();
+    chip_id->sixth_id = spi_read_byte();
 
-    spi_flash_deselect_chip();
+    spi_deselect_chip();
 }
 
 static void spi_flash_chip_init(void)
@@ -380,41 +211,39 @@ static void spi_flash_chip_init(void)
 
 static void spi_flash_write_enable()
 {
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_WRITE_ENABLE);
-    spi_flash_deselect_chip();
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_WRITE_ENABLE);
+    spi_deselect_chip();
 }
 
 //static void spi_flash_write_disable()
 //{
 //    spi_flash_select_chip();
-//    spi_flash_send_byte(_SPI_NAND_OP_WRITE_DISABLE);
+//    spi_send_byte(_SPI_NAND_OP_WRITE_DISABLE);
 //    spi_flash_deselect_chip();
 //}
 
 static void spi_flash_program_load(uint8_t *buf, uint32_t page_size, uint32_t page)
 {
-    uint32_t i;
     uint32_t addr = 0;
-    spi_flash_select_chip();
+    spi_select_chip();
 
-    spi_flash_send_byte(_SPI_NAND_OP_PROGRAM_LOAD_SINGLE);
+    spi_send_byte(_SPI_NAND_OP_PROGRAM_LOAD_SINGLE);
 
     if(spi_conf.plane_select_have) {
         if((page >> 6)& (0x1))
-            spi_flash_send_byte(ADDR_2nd_CYCLE(addr) | (0x10));
+            spi_send_byte(ADDR_2nd_CYCLE(addr) | (0x10));
         else
-            spi_flash_send_byte(ADDR_2nd_CYCLE(addr) & (0xef));
+            spi_send_byte(ADDR_2nd_CYCLE(addr) & (0xef));
     } else {
-        spi_flash_send_byte(ADDR_2nd_CYCLE(addr));
+        spi_send_byte(ADDR_2nd_CYCLE(addr));
     }
 
-    spi_flash_send_byte(ADDR_1st_CYCLE(addr));
+    spi_send_byte(ADDR_1st_CYCLE(addr));
 
-    for (i = 0; i < page_size; i++)
-        spi_flash_send_byte(buf[i]);
+    spi_dma_tx(buf, page_size);
 
-    spi_flash_deselect_chip();
+    spi_deselect_chip();
 }
 
 static void spi_flash_write_page_async(uint8_t *buf, uint32_t page,
@@ -426,29 +255,26 @@ static void spi_flash_write_page_async(uint8_t *buf, uint32_t page,
 
     spi_flash_write_enable();
 
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_PROGRAM_EXECUTE);
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_PROGRAM_EXECUTE);
     flash_last_operation = FLASH_OP_WRITE;
-    spi_flash_send_byte(ADDR_3rd_CYCLE(page));
-    spi_flash_send_byte(ADDR_2nd_CYCLE(page));
-    spi_flash_send_byte(ADDR_1st_CYCLE(page));
-    spi_flash_deselect_chip();
-//    spi_flash_wait_operation_end();
-
-//    spi_flash_write_disable();
+    spi_send_byte(ADDR_3rd_CYCLE(page));
+    spi_send_byte(ADDR_2nd_CYCLE(page));
+    spi_send_byte(ADDR_1st_CYCLE(page));
+    spi_deselect_chip();
 }
 
 static uint32_t spi_flash_load_page_into_cache(uint32_t page)
 {
     spi_flash_select_die(page);
 
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_PAGE_READ);
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_PAGE_READ);
     flash_last_operation = FLASH_OP_READ;
-    spi_flash_send_byte(ADDR_3rd_CYCLE(page));
-    spi_flash_send_byte(ADDR_2nd_CYCLE(page));
-    spi_flash_send_byte(ADDR_1st_CYCLE(page));
-    spi_flash_deselect_chip();
+    spi_send_byte(ADDR_3rd_CYCLE(page));
+    spi_send_byte(ADDR_2nd_CYCLE(page));
+    spi_send_byte(ADDR_1st_CYCLE(page));
+    spi_deselect_chip();
 
     return spi_flash_read_status();
 }
@@ -458,30 +284,29 @@ static uint32_t spi_flash_read_page(uint8_t *buf, uint32_t page, uint32_t data_s
     uint32_t status = spi_flash_load_page_into_cache(page);
     uint32_t data_offset = 0;
 
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_READ_FROM_CACHE_SINGLE);
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_READ_FROM_CACHE_SINGLE);
 
     if(spi_conf.read_dummy_prepend)
-        spi_flash_send_byte(FLASH_DUMMY_BYTE);
+        spi_send_byte(FLASH_DUMMY_BYTE);
 
     if(spi_conf.plane_select_have) {
         if((page >> 6)& (0x1))
-            spi_flash_send_byte(ADDR_2nd_CYCLE(data_offset) | (0x10));
+            spi_send_byte(ADDR_2nd_CYCLE(data_offset) | (0x10));
         else
-            spi_flash_send_byte(ADDR_2nd_CYCLE(data_offset) & (0xef));
+            spi_send_byte(ADDR_2nd_CYCLE(data_offset) & (0xef));
     } else {
-        spi_flash_send_byte(ADDR_2nd_CYCLE(data_offset));
+        spi_send_byte(ADDR_2nd_CYCLE(data_offset));
     }
 
-    spi_flash_send_byte(ADDR_1st_CYCLE(data_offset));
+    spi_send_byte(ADDR_1st_CYCLE(data_offset));
 
     if(!spi_conf.read_dummy_prepend)
-        spi_flash_send_byte(FLASH_DUMMY_BYTE);
+        spi_send_byte(FLASH_DUMMY_BYTE);
 
-    for(uint32_t i = 0; i < data_size; i++)
-          buf[i] = spi_flash_read_byte();
+    spi_dma_rx(buf, data_size);
 
-    spi_flash_deselect_chip();
+    spi_deselect_chip();
     return status;
 }
 
@@ -492,39 +317,38 @@ static uint32_t spi_flash_read_spare_data(uint8_t *buf, uint32_t page,
 
     spi_flash_select_die(page);
 
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_PAGE_READ);
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_PAGE_READ);
     flash_last_operation = FLASH_OP_SPARE;
-    spi_flash_send_byte(ADDR_3rd_CYCLE(page));
-    spi_flash_send_byte(ADDR_2nd_CYCLE(page));
-    spi_flash_send_byte(ADDR_1st_CYCLE(page));
-    spi_flash_deselect_chip();
+    spi_send_byte(ADDR_3rd_CYCLE(page));
+    spi_send_byte(ADDR_2nd_CYCLE(page));
+    spi_send_byte(ADDR_1st_CYCLE(page));
+    spi_deselect_chip();
     status = spi_flash_read_status();
 
-    spi_flash_select_chip();
-    spi_flash_send_byte(_SPI_NAND_OP_READ_FROM_CACHE_SINGLE);
+    spi_select_chip();
+    spi_send_byte(_SPI_NAND_OP_READ_FROM_CACHE_SINGLE);
 
     if(spi_conf.read_dummy_prepend)
-        spi_flash_send_byte(FLASH_DUMMY_BYTE);
+        spi_send_byte(FLASH_DUMMY_BYTE);
 
     offset += spi_conf.spare_offset;
     if(spi_conf.plane_select_have) {
         if((page >> 6)& (0x1))
-            spi_flash_send_byte(ADDR_2nd_CYCLE(offset) | (0x10));
+            spi_send_byte(ADDR_2nd_CYCLE(offset) | (0x10));
         else
-            spi_flash_send_byte(ADDR_2nd_CYCLE(offset) & (0xef));
+            spi_send_byte(ADDR_2nd_CYCLE(offset) & (0xef));
     } else {
-        spi_flash_send_byte(ADDR_2nd_CYCLE(offset));
+        spi_send_byte(ADDR_2nd_CYCLE(offset));
     }
-    spi_flash_send_byte(ADDR_1st_CYCLE(offset));
+    spi_send_byte(ADDR_1st_CYCLE(offset));
 
     if(!spi_conf.read_dummy_prepend)
-        spi_flash_send_byte(FLASH_DUMMY_BYTE);
+        spi_send_byte(FLASH_DUMMY_BYTE);
 
-    for(uint32_t i = 0; i < data_size; i++)
-          buf[i] = spi_flash_read_byte();
+    spi_dma_rx(buf, data_size);
 
-    spi_flash_deselect_chip();
+    spi_deselect_chip();
     return status;
 }
 
@@ -534,16 +358,16 @@ static uint32_t spi_flash_erase_block(uint32_t page)
 
     spi_flash_write_enable();
 
-    spi_flash_select_chip();
+    spi_select_chip();
 
-    spi_flash_send_byte(_SPI_NAND_OP_BLOCK_ERASE);
+    spi_send_byte(_SPI_NAND_OP_BLOCK_ERASE);
     flash_last_operation = FLASH_OP_ERASE;
 
-    spi_flash_send_byte(ADDR_3rd_CYCLE(page));
-    spi_flash_send_byte(ADDR_2nd_CYCLE(page));
-    spi_flash_send_byte(ADDR_1st_CYCLE(page));
+    spi_send_byte(ADDR_3rd_CYCLE(page));
+    spi_send_byte(ADDR_2nd_CYCLE(page));
+    spi_send_byte(ADDR_1st_CYCLE(page));
 
-    spi_flash_deselect_chip();
+    spi_deselect_chip();
 
     return spi_flash_read_status();
 }
@@ -553,6 +377,21 @@ static inline bool spi_flash_is_bb_supported()
     return true;
 }
 
+static int spi_flash_init(void *conf, uint32_t conf_size)
+{
+    if (conf_size < sizeof(spi_conf_t))
+        return -1;
+    spi_conf = *(spi_conf_t *)conf;
+
+    spi_init(spi_conf.freq);
+    spi_flash_chip_init();
+    return 0;
+}
+
+static void spi_flash_uninit()
+{
+    spi_uninit();
+}
 
 flash_hal_t hal_spi_nand =
 {
