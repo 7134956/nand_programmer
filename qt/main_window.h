@@ -57,6 +57,8 @@ private slots:
     void slotProgReadDeviceIdCompleted(quint64 status);
     void slotProgReadCompleted(quint64 readBytes);
     void slotProgReadProgress(quint64 progress);
+    void slotProgVerifyCompleted(quint64 readBytes);
+    void slotProgVerifyProgress(quint64 progress);
     void slotProgWriteCompleted(int status);
     void slotProgWriteProgress(quint64 progress);
     void slotProgEraseCompleted(quint64 status);
@@ -76,6 +78,7 @@ public slots:
     void slotProgReadDeviceId();
     void slotProgErase();
     void slotProgRead();
+    void slotProgVerify();
     void slotProgWrite();
     void slotProgReadBadBlocks();
     void slotSelectChip(int selectedChipNum);
